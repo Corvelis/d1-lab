@@ -6,6 +6,19 @@ Liquid AIの **d1-3B / d1-omni-600M** を、iPhoneやApple Silicon Macで試す�
 
 アプリの準備は [ビルド手順](apps/d1_lab/docs/building.md) を参照してください。起動後は、以下のサンプルから試せます。
 
+## 操作動画
+
+[動画を見る（MP4・約28秒）](apps/d1_lab/docs/videos/d1-lab-quick-tour-ja.mp4)
+
+<details>
+<summary>操作プレビューを見る</summary>
+
+![D1 Labの操作プレビュー](apps/d1_lab/docs/videos/d1-lab-quick-tour-ja.gif)
+
+</details>
+
+iPhoneの日本語画面で、タスク一覧、文章の判定と速度表示、判定条件、写真・録音の入口、履歴・モデル画面を紹介します。モデルは取得・準備済みの状態です。初めて使う方は[はじめて使う](apps/d1_lab/docs/quickstart.md)から準備してください。
+
 ## 最初に試す
 
 1. 起動して「タスクを選ぶ」の日本語サンプルから「口コミの印象」を選びます。

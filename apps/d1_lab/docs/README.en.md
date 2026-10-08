@@ -6,6 +6,19 @@ Try Liquid AI's **d1-3B / d1-omni-600M** on your iPhone or Apple Silicon Mac. Ev
 
 Follow the [build instructions](building.en.md) to prepare the app. Once it is running, start with the samples below.
 
+## Quick tour
+
+[Watch the video (MP4, about 28 seconds)](videos/d1-lab-quick-tour-ja.mp4)
+
+<details>
+<summary>Show the animated preview</summary>
+
+![D1 Lab interface preview](videos/d1-lab-quick-tour-ja.gif)
+
+</details>
+
+This tour of the Japanese iPhone interface shows task browsing, a text decision and timing, criteria, photo/audio controls, history and models. Models are already downloaded and prepared. Follow the [quick start](quickstart.en.md) for first-time setup.
+
 ## Your first decision
 
 1. Open **Choose a task** and select **Review sentiment** from the English samples.
