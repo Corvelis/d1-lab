@@ -1,0 +1,17 @@
+**/.DS_Store
+**/__pycache__/
+**/*.pyc
+**/.dart_tool/
+**/build*/
+**/Pods/
+**/.symlinks/
+**/ephemeral/
+**/xcuserdata/
+**/third_party/
+**/apple/DecisionRuntime.xcframework/
+**/apple/runtime-build.json
+**/*.gguf
+**/*.part
+*.zip
+SHA256SUMS
+dist/

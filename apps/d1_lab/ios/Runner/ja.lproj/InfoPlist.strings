@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "写真を撮影し、端末内のd1モデルで判定します。";
+"NSPhotoLibraryUsageDescription" = "選んだ写真を、端末内のd1モデルで判定します。";
+"NSMicrophoneUsageDescription" = "声を録音し、端末内のd1-omniモデルで判定します。";

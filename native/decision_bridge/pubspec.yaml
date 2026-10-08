@@ -1,0 +1,16 @@
+name: decision_bridge
+description: Isolated local d1 inference runtime, with Metal on Apple devices.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: ^3.8.1
+dependencies:
+  flutter:
+    sdk: flutter
+flutter:
+  plugin:
+    platforms:
+      ios:
+        pluginClass: DecisionBridgePlugin
+      macos:
+        pluginClass: DecisionBridgePlugin

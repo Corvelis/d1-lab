@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "Take a photo to evaluate it locally with d1.";
+"NSPhotoLibraryUsageDescription" = "Choose a photo to evaluate it locally with d1.";
+"NSMicrophoneUsageDescription" = "Record audio to evaluate it locally with d1-omni.";

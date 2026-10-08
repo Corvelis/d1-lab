@@ -1,0 +1,25 @@
+name: Checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install the tested Flutter SDK
+        run: |
+          git clone --depth 1 --branch 3.32.8 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Analyze and test
+        working-directory: apps/d1_lab
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test --reporter expanded
+      - name: Check runtime distribution tools
+        run: python3 -B -m unittest discover -s native/decision_bridge/tests -v

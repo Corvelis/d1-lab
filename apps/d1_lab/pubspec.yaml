@@ -1,0 +1,32 @@
+name: d1_lab
+description: "Local d1 decision model experiments on iPhone with Metal."
+publish_to: 'none'
+version: 0.13.0+17
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  decision_bridge:
+    path: ../../native/decision_bridge
+  crypto: ^3.0.7
+  file_picker: ^8.1.7
+  image_picker: 1.2.1
+  record: 6.2.1
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/licenses/
+    - docs/privacy.md
+    - docs/privacy.en.md
