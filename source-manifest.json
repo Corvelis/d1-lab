@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "files": {
-    ".github/workflows/checks.yml": "36a4ee69d60d911d1865241b4fa9f2479a6122f9bb131e9b9697e43b4eb26bee",
+    ".github/workflows/checks.yml": "fddf2f8c996c6521669bea7fce6d94caaec5367c19c0f2296eff8d6d23e7eecc",
     ".gitignore": "bcc8666d3c474f462ae2fa6e829d06528130246ff412d7c3806f21382324d1b3",
     "CHANGELOG.md": "6a4968aa47c7e7a8e97a169f8cd5140a9806ba95de583c8cfdbec0e2649a6602",
     "LICENSE": "12960eb40f526636ad7d72b72d9ea6660ed9fe6562b02f450bb4ec03389d4e76",
