@@ -10,12 +10,7 @@ Follow the [build instructions](apps/d1_lab/docs/building.en.md) to prepare the 
 
 [Watch with English captions (MP4, about 36 seconds)](apps/d1_lab/docs/videos/d1-lab-quick-tour-en.mp4) · [Japanese captions](apps/d1_lab/docs/videos/d1-lab-quick-tour-ja.mp4)
 
-<details>
-<summary>Show the animated preview</summary>
-
 ![D1 Lab interface preview with English captions](apps/d1_lab/docs/videos/d1-lab-quick-tour-en.gif)
-
-</details>
 
 English captions guide you through the Japanese iPhone interface: choosing a task, running a text decision, reading timing, editing criteria, saving a task, photo/audio controls, comparison, history and model management. Models are already downloaded and prepared. Follow the [quick start](apps/d1_lab/docs/quickstart.en.md) for first-time setup.
 

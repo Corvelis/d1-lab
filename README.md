@@ -10,12 +10,7 @@ Liquid AIの **d1-3B / d1-omni-600M** を、iPhoneやApple Silicon Macで試す�
 
 [日本語の解説付き動画を見る（MP4・約36秒）](apps/d1_lab/docs/videos/d1-lab-quick-tour-ja.mp4) · [English captions](apps/d1_lab/docs/videos/d1-lab-quick-tour-en.mp4)
 
-<details>
-<summary>操作プレビューを見る</summary>
-
 ![D1 Labの操作プレビュー](apps/d1_lab/docs/videos/d1-lab-quick-tour-ja.gif)
-
-</details>
 
 iPhoneの操作に解説字幕を添え、タスク選択、文章の判定、速度の読み方、条件編集、タスク保存、写真・録音の入口、比較・履歴、モデル管理を紹介します。モデルは取得・準備済みの状態です。初めて使う方は[はじめて使う](apps/d1_lab/docs/quickstart.md)から準備してください。
 
