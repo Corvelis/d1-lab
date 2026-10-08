@@ -8,16 +8,16 @@ Follow the [build instructions](apps/d1_lab/docs/building.en.md) to prepare the 
 
 ## Quick tour
 
-[Watch the video (MP4, about 28 seconds)](apps/d1_lab/docs/videos/d1-lab-quick-tour-ja.mp4)
+[Watch with English captions (MP4, about 36 seconds)](apps/d1_lab/docs/videos/d1-lab-quick-tour-en.mp4) · [Japanese captions](apps/d1_lab/docs/videos/d1-lab-quick-tour-ja.mp4)
 
 <details>
 <summary>Show the animated preview</summary>
 
-![D1 Lab interface preview](apps/d1_lab/docs/videos/d1-lab-quick-tour-ja.gif)
+![D1 Lab interface preview with English captions](apps/d1_lab/docs/videos/d1-lab-quick-tour-en.gif)
 
 </details>
 
-This tour of the Japanese iPhone interface shows task browsing, a text decision and timing, criteria, photo/audio controls, history and models. Models are already downloaded and prepared. Follow the [quick start](apps/d1_lab/docs/quickstart.en.md) for first-time setup.
+English captions guide you through the Japanese iPhone interface: choosing a task, running a text decision, reading timing, editing criteria, saving a task, photo/audio controls, comparison, history and model management. Models are already downloaded and prepared. Follow the [quick start](apps/d1_lab/docs/quickstart.en.md) for first-time setup.
 
 ## Your first decision
 

@@ -4,7 +4,7 @@
 
 The screenshots show the Mac app. Follow the same steps on iPhone.
 
-The [28-second iPhone tour](videos/d1-lab-quick-tour-ja.mp4) also shows tasks, results and timing. It uses the Japanese interface with models already prepared.
+The [36-second iPhone tour with English captions](videos/d1-lab-quick-tour-en.mp4) also explains the workflow, results and timing. It uses the Japanese interface with models already prepared.
 
 ## 1. Choose a task
 
