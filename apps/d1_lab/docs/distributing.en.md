@@ -51,7 +51,7 @@ Follow the [bilingual TestFlight guide](testflight.en.md) for external testing, 
 
 Set a unique Bundle Identifier and distribution Team in Xcode, then create an Archive. Validate it in Organizer and upload it to App Store Connect. The first external TestFlight build requires review. A development IPA restricted to registered devices is not a general distribution package.
 
-Provide Japanese and English descriptions, screenshots, a support URL and a published privacy-policy URL in App Store Connect. Complete privacy disclosures after checking model delivery services and dependency SDK data handling as well as the implementation that keeps decision inputs on-device.
+Provide TestFlight test information and review contact details. For a later App Store release, also provide Japanese and English store descriptions, screenshots, a support URL and a published privacy-policy URL. Complete privacy disclosures after checking model delivery services and dependency SDK data handling as well as the implementation that keeps decision inputs on-device.
 
 Review notes should explain downloading models in the app and running text, image and audio samples. Decisions run on-device; model files are downloaded as additional data.
 
