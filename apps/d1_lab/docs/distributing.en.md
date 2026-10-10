@@ -17,7 +17,7 @@ flutter build macos --release
 flutter build ios --release --no-codesign
 ```
 
-Attach the runtime ZIP and SHA256SUMS to GitHub Release using the names in the build guide. App version 0.13.0 uses runtime 0.2.0. Use CHANGELOG.md for release notes. Prepare the Release as a draft before publication.
+Attach the runtime ZIP and SHA256SUMS to GitHub Release using the names in the build guide. App version 0.13.1 uses runtime 0.2.0. Use CHANGELOG.md for release notes. Prepare the Release as a draft before publication.
 
 Release files can include source, the runtime ZIP, checksums and the bilingual guides. Do not attach model GGUF files, signing certificates, credentials or personal run history.
 
@@ -46,6 +46,8 @@ The script requires Accepted, staples and validates the ticket, verifies signatu
 [Apple's notarization guide](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
 
 ## iPhone app
+
+Follow the [bilingual TestFlight guide](testflight.en.md) for external testing, including app registration, Archive creation, beta descriptions, review notes and invitation links.
 
 Set a unique Bundle Identifier and distribution Team in Xcode, then create an Archive. Validate it in Organizer and upload it to App Store Connect. The first external TestFlight build requires review. A development IPA restricted to registered devices is not a general distribution package.
 

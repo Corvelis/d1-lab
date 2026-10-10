@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.1
+
+- Use D1 Lab branding and the app background color on the iOS launch screen.
+- Explain TestFlight diagnostics and feedback in the Japanese and English privacy policies.
+- Add bilingual external-testing instructions, beta descriptions and review notes.
+
 ## 0.13.0
 
 - Manage photo and recording storage from Models → Saved data.

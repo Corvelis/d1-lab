@@ -1,7 +1,7 @@
 name: d1_lab
 description: "Local d1 decision model experiments on iPhone with Metal."
 publish_to: 'none'
-version: 0.13.0+17
+version: 0.13.1+18
 
 environment:
   sdk: ^3.8.1

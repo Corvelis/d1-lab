@@ -1,5 +1,3 @@
 # Launch Screen Assets
 
-You can customize the launch screen with your own desired assets by replacing the image files in this directory.
-
-You can also do it by opening your Flutter project's Xcode project with `open ios/Runner.xcworkspace`, selecting `Runner/Assets.xcassets` in the Project Navigator and dropping in the desired images.
+The launch screen uses the D1 Lab app icon at a fixed 96-point size against the app's background color. Keep this image consistent with the app icon when updating branding.

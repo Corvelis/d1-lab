@@ -17,7 +17,7 @@ flutter build macos --release
 flutter build ios --release --no-codesign
 ```
 
-ランタイムのZIPとSHA256SUMSは、ビルド手順に記載した名前でGitHub Releaseに添付します。アプリの版は0.13.0、対応ランタイムは0.2.0です。CHANGELOG.mdをリリースノートに使えます。公開前はReleaseを下書きとして作成してください。
+ランタイムのZIPとSHA256SUMSは、ビルド手順に記載した名前でGitHub Releaseに添付します。アプリの版は0.13.1、対応ランタイムは0.2.0です。CHANGELOG.mdをリリースノートに使えます。公開前はReleaseを下書きとして作成してください。
 
 公開するファイルの候補は、ソース、ランタイムZIP、チェックサム、日英の説明書です。モデルのGGUF、署名証明書、認証情報、個人の実行履歴を添付しないでください。
 
@@ -46,6 +46,8 @@ python3 native/decision_bridge/scripts/finish_macos.py \
 [Appleの公証手順](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
 
 ## iPhoneアプリ
+
+外部テスターへの配布は[日英のTestFlight手順](testflight.md)にまとめています。アプリ登録、Archive、テスト紹介文、審査メモ、招待リンクまで順に進められます。
 
 Xcodeで固有のBundle Identifierと配布用Teamを設定し、Archiveを作成します。OrganizerのValidate Appに成功した後、App Store Connectへアップロードします。TestFlightの外部テストには初回ビルドの審査が必要です。開発用の端末登録を前提にしたIPAを一般配布用として案内しないでください。
 

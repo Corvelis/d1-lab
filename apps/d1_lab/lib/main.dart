@@ -1501,7 +1501,7 @@ class _LabScreenState extends State<LabScreen> with WidgetsBindingObserver {
       onPressed: () => showLicensePage(
         context: context,
         applicationName: 'D1 Lab',
-        applicationVersion: '0.13.0',
+        applicationVersion: '0.13.1',
       ),
       icon: Icon(Icons.description_outlined),
       label: Text(context.strings.text("モデル・ソフトウェアのライセンス")),
