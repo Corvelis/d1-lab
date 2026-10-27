@@ -17,7 +17,7 @@ flutter build macos --release
 flutter build ios --release --no-codesign
 ```
 
-ランタイムのZIPとSHA256SUMSは、ビルド手順に記載した名前でGitHub Releaseに添付します。アプリの版は0.13.1、対応ランタイムは0.2.0です。CHANGELOG.mdをリリースノートに使えます。公開前はReleaseを下書きとして作成してください。
+ランタイムのZIPとSHA256SUMSは、ビルド手順に記載した名前でGitHub Releaseに添付します。アプリの版は0.14.0、対応ランタイムは0.3.0です。CHANGELOG.mdをリリースノートに使えます。公開前はReleaseを下書きとして作成してください。
 
 公開するファイルの候補は、ソース、ランタイムZIP、チェックサム、日英の説明書です。モデルのGGUF、署名証明書、認証情報、個人の実行履歴を添付しないでください。
 

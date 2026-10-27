@@ -29,9 +29,13 @@ static bool debug_tensor(ggml_tensor * t, bool ask, void *) {
 struct MediaImpl {
     clip_ctx * vision=nullptr, *audio=nullptr;
     mtmd_context * mtmd=nullptr;
+    bool one_pass=false;
+    int n_embd=0;
     ~MediaImpl() { if(vision) clip_free(vision); if(audio) clip_free(audio); if(mtmd) mtmd_free(mtmd); }
 };
-Media::Media(const std::string & path, llama_model * model, bool omni, bool gpu) : impl(new MediaImpl) {
+Media::Media(const std::string & path, llama_model * model, bool omni, bool gpu, bool lfm3, int limit) : impl(new MediaImpl) {
+    impl->one_pass=lfm3;
+    impl->n_embd=llama_model_n_embd_inp(model);
     if(omni) {
         clip_context_params p{}; p.use_gpu=gpu; p.flash_attn_type=CLIP_FLASH_ATTN_TYPE_DISABLED;
         if(std::getenv("D1_DEBUG_TENSORS")) p.cb_eval=debug_tensor;
@@ -40,8 +44,9 @@ Media::Media(const std::string & path, llama_model * model, bool omni, bool gpu)
         if(!impl->vision || !impl->audio) throw std::runtime_error("omniプロジェクターを読み込めませんでした");
     } else {
         auto p=mtmd_context_params_default(); p.use_gpu=gpu; p.warmup=false;
+        if(lfm3) p.image_max_tokens=std::max(64,std::min(4096,limit/2));
         impl->mtmd=mtmd_init_from_file(path.c_str(),model,p);
-        if(!impl->mtmd) throw std::runtime_error("3B画像プロジェクターを読み込めませんでした");
+        if(!impl->mtmd) throw std::runtime_error("画像・音声用データを読み込めませんでした");
     }
 }
 Media::~Media() = default;
@@ -119,16 +124,68 @@ ImageEvaluation Media::evaluate_image(llama_context * context,const std::string 
     auto elapsed=[](clock::time_point start) { return std::chrono::duration<double,std::milli>(clock::now()-start).count(); };
     ImageEvaluation result;
     auto start=clock::now();
+    const auto prepare_start=start;
     auto wrapper=mtmd_helper_bitmap_init_from_file(impl->mtmd,path.c_str(),false,mtmd_helper_init_opt_default());
     if(!wrapper.bitmap) throw std::runtime_error("画像を読み込めませんでした");
     std::unique_ptr<mtmd_bitmap,decltype(&mtmd_bitmap_free)> bitmap(wrapper.bitmap,mtmd_bitmap_free);
-    if(mtmd_bitmap_is_audio(bitmap.get())) throw std::runtime_error("3Bには画像を入力してください");
+    const bool audio=mtmd_bitmap_is_audio(bitmap.get());
+    if(audio && !impl->one_pass) throw std::runtime_error("3Bには画像を入力してください");
+    if(audio) {
+        const int rate=mtmd_get_audio_sample_rate(impl->mtmd);
+        seconds=double(mtmd_bitmap_get_nx(bitmap.get()))/std::max(1,rate);
+        if(seconds<=0 || seconds>30) throw std::runtime_error("音声は0〜30秒の範囲にしてください");
+    } else seconds=0;
     auto * ptr=bitmap.get(); mtmd_input_text text{prompt.c_str(),prompt.size(),false,true};
     std::unique_ptr<mtmd_input_chunks,decltype(&mtmd_input_chunks_free)> chunks(mtmd_input_chunks_init(),mtmd_input_chunks_free);
     if(mtmd_tokenize(impl->mtmd,chunks.get(),&text,&ptr,1)!=0) throw std::runtime_error("画像入力の準備に失敗しました");
     result.tokens=mtmd_helper_get_n_tokens(chunks.get());
     if(result.tokens>size_t(limit)) throw std::runtime_error("画像を含む入力がコンテキスト上限を超えています");
     result.prepare_ms=elapsed(start);
+    if(impl->one_pass) {
+        // LFM3 decisions must see text and media together in a single batch.
+        std::unique_ptr<llama_batch_ext,decltype(&llama_batch_ext_free)> batch(llama_batch_ext_init(context),llama_batch_ext_free);
+        if(!batch) throw std::runtime_error("バッチを確保できませんでした");
+        std::vector<std::vector<float>> embeddings;
+        llama_pos past=0;
+        int last=-1;
+        for(size_t i=0;i<mtmd_input_chunks_size(chunks.get());++i) {
+            const auto * chunk=mtmd_input_chunks_get(chunks.get(),i);
+            if(mtmd_input_chunk_get_type(chunk)==MTMD_INPUT_CHUNK_TYPE_TEXT) {
+                size_t count=0;
+                const auto * tokens=mtmd_input_chunk_get_tokens_text(chunk,&count);
+                for(size_t k=0;k<count;++k) {
+                    last=llama_batch_ext_add_token(batch.get(),0,tokens[k]);
+                    if(last<0 || !llama_batch_ext_set_pos(batch.get(),last,&past)) throw std::runtime_error("入力がコンテキスト上限を超えています");
+                    llama_batch_ext_set_output_logits(batch.get(),last,false);
+                    ++past;
+                }
+            } else {
+                start=clock::now();
+                if(mtmd_encode_chunk(impl->mtmd,chunk)!=0) throw std::runtime_error("画像・音声のエンコードに失敗しました");
+                result.encode_ms+=elapsed(start);
+                const size_t count=mtmd_input_chunk_get_n_tokens(chunk);
+                result.media_tokens+=count;
+                const auto * data=mtmd_get_output_embd(impl->mtmd);
+                embeddings.emplace_back(data,data+count*impl->n_embd);
+                for(size_t k=0;k<count;++k) {
+                    llama_embd row{embeddings.back().data()+k*impl->n_embd,1,size_t(impl->n_embd)};
+                    last=llama_batch_ext_add_embd(batch.get(),0,row);
+                    llama_pos pos=past;
+                    if(last<0 || !llama_batch_ext_set_pos(batch.get(),last,&pos)) throw std::runtime_error("入力がコンテキスト上限を超えています");
+                    llama_batch_ext_set_output_logits(batch.get(),last,false);
+                    ++past;
+                }
+            }
+        }
+        if(last<0 || !llama_batch_ext_set_output_logits(batch.get(),last,true)) throw std::runtime_error("回答位置のlogitsがありません");
+        result.prepare_ms=elapsed(prepare_start)-result.encode_ms;
+        start=clock::now();
+        const int rc=llama_process(context,LLAMA_PROCESS_TYPE_DECODE,batch.get());
+        llama_synchronize(context);
+        result.forward_ms=elapsed(start);
+        if(rc!=0) throw std::runtime_error("画像判定に失敗しました: "+std::to_string(rc));
+        return result;
+    }
     llama_pos past=0;
     const auto n=mtmd_input_chunks_size(chunks.get());
     for(size_t i=0;i<n;++i) {

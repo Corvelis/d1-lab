@@ -594,7 +594,7 @@ class _LabScreenState extends State<LabScreen> with WidgetsBindingObserver {
               (m) =>
                   (lab.inputKind != 'audio' &&
                       !(lab.mediaPath != null && lab.mediaType == 'audio')) ||
-                  m.id == 'omni',
+                  m.supportsAudio,
             )
             .map(
               (m) => DropdownMenuItem(
@@ -1037,6 +1037,31 @@ class _LabScreenState extends State<LabScreen> with WidgetsBindingObserver {
       context.strings.text("同じ入力で、答えと速度を見比べます。"),
     ),
     box([
+      for (final (index, model) in lab.comparisonModels.indexed) ...[
+        DropdownButtonFormField<String>(
+          key: ValueKey('comparison-model-$index'),
+          value: model.id,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: context.strings.text(index == 0 ? 'モデル A' : 'モデル B'),
+          ),
+          items: lab.comparableModels
+              .map(
+                (m) => DropdownMenuItem(
+                  value: m.id,
+                  child: Text(
+                    '${m.name} · ${m.quantization}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: lab.locked
+              ? null
+              : (id) => lab.selectComparisonModel(index, id!),
+        ),
+        const SizedBox(height: 16),
+      ],
       Text(
         context.strings.text("判断材料：{p0}", {'p0': lab.state}),
         maxLines: 3,
@@ -1049,20 +1074,13 @@ class _LabScreenState extends State<LabScreen> with WidgetsBindingObserver {
           'p1': lab.backend == 'metal' ? 'Metal' : 'CPU',
         }),
       ),
-      if (lab.inputKind == 'audio' ||
-          (lab.mediaPath != null && lab.mediaType == 'audio')) ...[
-        SizedBox(height: 12),
-        Text(context.strings.text("音声入力はomni専用です。「試す」から実行してください。")),
-      ] else if (lab.missingInput != null) ...[
+      if (lab.missingInput != null) ...[
         SizedBox(height: 12),
         Text(context.strings.status(lab.missingInput!)),
       ],
     ]),
     FilledButton.icon(
-      onPressed:
-          lab.locked ||
-              lab.missingInput != null ||
-              (lab.mediaPath != null && lab.mediaType == 'audio')
+      onPressed: lab.locked || lab.missingInput != null
           ? null
           : () => execute(compare: true),
       icon: Icon(Icons.compare_arrows),
@@ -1379,7 +1397,7 @@ class _LabScreenState extends State<LabScreen> with WidgetsBindingObserver {
         Text(spec.name, style: Theme.of(context).textTheme.titleLarge),
         Text(
           context.strings.text("{p0} · 本体 {p1} GB", {
-            'p0': spec.quantization,
+            'p0': '${spec.generation.toUpperCase()} · ${spec.quantization}',
             'p1': (spec.base.bytes / 1000000000).toStringAsFixed(2),
           }),
         ),
@@ -1388,7 +1406,7 @@ class _LabScreenState extends State<LabScreen> with WidgetsBindingObserver {
         SizedBox(height: 8),
         Text(
           context.strings.text(
-            spec.id == '3b' ? '画像用の追加データ {p0} MB' : '画像・音声用の追加データ {p0} MB',
+            spec.supportsAudio ? '画像・音声用の追加データ {p0} MB' : '画像用の追加データ {p0} MB',
             {'p0': (spec.projector.bytes / 1000000).toStringAsFixed(0)},
           ),
         ),
@@ -1461,18 +1479,19 @@ class _LabScreenState extends State<LabScreen> with WidgetsBindingObserver {
                       lab.settingsChanged();
                     },
             ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(context.strings.text("omniのテキスト確率を校正")),
-              subtitle: Text(context.strings.text("モデルの推奨設定を使います。")),
-              value: lab.calibrated,
-              onChanged: lab.locked
-                  ? null
-                  : (value) {
-                      lab.calibrated = value;
-                      lab.settingsChanged();
-                    },
-            ),
+            if (lab.selectedModel.supportsCalibration)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(context.strings.text("確率を校正")),
+                subtitle: Text(context.strings.text("モデルの推奨設定を使います。")),
+                value: lab.calibrated,
+                onChanged: lab.locked
+                    ? null
+                    : (value) {
+                        lab.calibrated = value;
+                        lab.settingsChanged();
+                      },
+              ),
           ],
         ),
       ),
@@ -1501,7 +1520,7 @@ class _LabScreenState extends State<LabScreen> with WidgetsBindingObserver {
       onPressed: () => showLicensePage(
         context: context,
         applicationName: 'D1 Lab',
-        applicationVersion: '0.13.1',
+        applicationVersion: '0.14.0',
       ),
       icon: Icon(Icons.description_outlined),
       label: Text(context.strings.text("モデル・ソフトウェアのライセンス")),

@@ -17,7 +17,7 @@ flutter build macos --release
 flutter build ios --release --no-codesign
 ```
 
-Attach the runtime ZIP and SHA256SUMS to GitHub Release using the names in the build guide. App version 0.13.1 uses runtime 0.2.0. Use CHANGELOG.md for release notes. Prepare the Release as a draft before publication.
+Attach the runtime ZIP and SHA256SUMS to GitHub Release using the names in the build guide. App version 0.14.0 uses runtime 0.3.0. Use CHANGELOG.md for release notes. Prepare the Release as a draft before publication.
 
 Release files can include source, the runtime ZIP, checksums and the bilingual guides. Do not attach model GGUF files, signing certificates, credentials or personal run history.
 
