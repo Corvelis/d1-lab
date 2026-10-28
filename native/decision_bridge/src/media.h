@@ -11,7 +11,7 @@ struct ImageEvaluation {
 };
 struct Media {
     std::unique_ptr<MediaImpl> impl;
-    Media(const std::string & path, llama_model * model, bool omni, bool gpu);
+    Media(const std::string & path, llama_model * model, bool omni, bool gpu, bool lfm3 = false, int limit = 2048);
     ~Media();
     std::vector<float> encode(const std::string & path, bool audio);
     ImageEvaluation evaluate_image(llama_context * context, const std::string & path, const std::string & prompt, int limit);

@@ -115,6 +115,21 @@ class _StringsDelegate extends LocalizationsDelegate<AppStrings> {
 }
 
 const englishMessages = <String, String>{
+  'モデル A': 'Model A',
+  'モデル B': 'Model B',
+  '確率を校正': 'Calibrate probabilities',
+  '評価段階の中央値 / {p0}': 'Median rating / {p0}',
+  '画像・音声用データを読み込めませんでした': 'Could not load the image/audio data',
+  '画像・音声のエンコードに失敗しました': 'Image/audio encoding failed',
+  '判定の実行に失敗しました: {p0}': 'Decision failed: {p0}',
+  '音声に対応したモデルを選択してください': 'Select a model that supports audio',
+  'LFM3': 'LFM3',
+  'LFM2': 'LFM2',
+  '推論設定が不正です': 'Invalid inference settings',
+  '入力の処理単位が不正です': 'Invalid input batch size',
+  'Attention設定が不正です': 'Invalid attention settings',
+  'omniではこのAttention設定を利用できません':
+      'These attention settings are unavailable for omni',
   '保存データ': 'Saved data',
   '写真・録音': 'Photos and recordings',
   '{p0}ファイル': '{p0} files',
@@ -179,8 +194,8 @@ const englishMessages = <String, String>{
   "このタスクのヒント": "Tips for this task",
   "写真：画像タスクを選び、カメラか写真ライブラリから追加。\n音声：音声タスクを選び、録音して「停止して使う」。最大30秒、omniで判定します。":
       "Photo: Choose an image task and add a photo from your camera or library.\nAudio: Choose an audio task, record, then tap Stop & use. Up to 30 seconds, using omni.",
-  "候補を選ぶ：各候補の確率\nはい・いいえ：「はい」の確率\n段階で評価：各段階を0・1・2…とした平均評価\n\nTotal：実行から結果が返るまでの時間\nDecision：判定にかかった時間\nPrefill / Input speed：入力の処理速度（tok/s）\n\n確率は正解率ではありません。自分の例で結果を確かめてください。":
-      "Choice: Probability for each option\nYes/no: Probability of Yes\nRating: Average rating with levels numbered 0, 1, 2…\n\nTotal: Time from starting a run to receiving its result\nDecision: Time spent on the decision\nPrefill / Input speed: Input processing speed (tok/s)\n\nProbability is not accuracy. Check the answers using your own examples.",
+  "候補を選ぶ：各候補の確率\nはい・いいえ：「はい」の確率\n段階で評価：各段階を0・1・2…で表示（LFM3は中央値）\n\nTotal：実行から結果が返るまでの時間\nDecision：判定にかかった時間\nPrefill / Input speed：入力の処理速度（tok/s）\n\n確率は正解率ではありません。自分の例で結果を確かめてください。":
+      "Choice: Probability for each option\nYes/no: Probability of Yes\nRating: Levels numbered 0, 1, 2… (the median for LFM3)\n\nTotal: Time from starting a run to receiving its result\nDecision: Time spent on the decision\nPrefill / Input speed: Input processing speed (tok/s)\n\nProbability is not accuracy. Check the answers using your own examples.",
   "モデルを確認中": "Checking the model",
   "ファイルを確認中": "Checking the file",
   '表示言語': 'Language',

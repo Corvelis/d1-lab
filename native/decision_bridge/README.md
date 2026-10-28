@@ -2,7 +2,7 @@
 
 [English](README.en.md)
 
-D1 LabのFlutter推論プラグインです。iOS 16以上とApple SiliconのmacOS 14以上に対応し、CPUとMetalでd1-3B / d1-omni-600Mを実行します。
+D1 LabのFlutter推論プラグインです。iOS 16以上とApple SiliconのmacOS 14以上に対応し、CPUとMetalでd1-2B / d1-Omni-2B / d1-3B / d1-omni-600Mを実行します。
 
 アプリを試す手順は [D1 Lab](../../apps/d1_lab/README.md)、環境の準備は [ビルド手順](../../apps/d1_lab/docs/building.md) を参照してください。
 
@@ -20,6 +20,6 @@ python3 native/decision_bridge/scripts/prepare_runtime.py --source
 
 ## ソースとライセンス
 
-上流の版とアーカイブのSHA-256は `runtime.lock.json` に固定しています。`patch_runtime.py` と `patch_media.py` がd1の判定ヘッドとメディア処理を追加します。C APIは `include/decision.h` にあります。
+上流の版とアーカイブのSHA-256は `runtime.lock.json` に固定しています。`patch_runtime.py` はd1-3Bの出力取得を調整し、`patch_media.py` は長さを制限した音声ファイルの読み込みを追加します。モデルと画像・音声のエンコードには固定した上流版を使います。C APIは `include/decision.h` にあります。
 
 このパッケージのソースは [Apache-2.0](LICENSE) です。同梱する依存コードのライセンスは [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md) と `licenses/` にあります。モデルのライセンスは別です。

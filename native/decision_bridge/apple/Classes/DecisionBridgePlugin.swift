@@ -16,7 +16,8 @@ import ImageIO
 
 public final class DecisionBridgePlugin: NSObject, FlutterPlugin {
     private let engine = createEngine()
-    private let queue = DispatchQueue(label: "app.d1lab.runtime", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "app.d1lab.runtime", qos: .userInitiated,
+                                     autoreleaseFrequency: .workItem)
     public static func register(with registrar: FlutterPluginRegistrar) {
         #if os(iOS)
         let messenger = registrar.messenger()

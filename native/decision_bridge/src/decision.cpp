@@ -4,6 +4,7 @@
 #include "llama.h"
 #include "llama-ext.h"
 #include "llama-model.h"
+#include "llama-context.h"
 #include "ggml-backend.h"
 #include "nlohmann/json.hpp"
 #include <algorithm>
@@ -17,6 +18,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <mutex>
 #include <fstream>
 #ifdef __APPLE__
@@ -42,14 +44,22 @@ struct Engine {
     llama_context * context = nullptr;
     std::atomic<bool> cancelled{false};
     bool omni = false;
+    bool lfm3 = false;
+    bool supports_audio = false;
+    std::string model_name;
+    std::string architecture;
+    std::vector<std::string> special_spellings;
+    bool selective_output = false;
+    std::unordered_map<llama_token,std::vector<float>> output_rows;
     uint32_t limit = 2048;
     json placement;
+    json execution_config;
     std::unique_ptr<Media> media;
     std::vector<float> prefix;
     std::string media_path;
     bool audio = false;
     ~Engine() { unload(); }
-    void unload() { media.reset(); prefix.clear(); media_path.clear(); if(context) llama_free(context); context=nullptr; if(model) llama_model_free(model); model=nullptr; }
+    void unload() { media.reset(); prefix.clear(); media_path.clear(); output_rows.clear(); selective_output=false; if(context) llama_free(context); context=nullptr; if(model) llama_model_free(model); model=nullptr; }
 };
 static char * output(json j) { auto s=j.dump(); auto p=static_cast<char *>(malloc(s.size()+1)); if(!p) return nullptr; memcpy(p,s.c_str(),s.size()+1); return p; }
 static char * error(const std::exception & e) { return output({{"error",e.what()}}); }
@@ -63,8 +73,37 @@ static std::vector<llama_token> tokenize(Engine & e, const std::string & s, bool
     if(n<0) throw std::runtime_error("トークン化に失敗しました");
     out.resize(n); return out;
 }
+static double selected_logit(Engine & e, llama_token token, const float * embedding) {
+    auto found=e.output_rows.find(token);
+    if(found==e.output_rows.end()) {
+        auto * weights=e.model->output;
+        if(token<0 || token>=weights->ne[1]) throw std::runtime_error("判定出力が不正です");
+        std::vector<uint8_t> row(ggml_row_size(weights->type,weights->ne[0]));
+        ggml_backend_tensor_get(weights,row.data(),size_t(token)*weights->nb[1],row.size());
+        std::vector<float> values(weights->ne[0]);
+        if(weights->type==GGML_TYPE_F32) memcpy(values.data(),row.data(),row.size());
+        else ggml_get_type_traits(weights->type)->to_float(row.data(),values.data(),weights->ne[0]);
+        found=e.output_rows.emplace(token,std::move(values)).first;
+    }
+    // This is the same output projection, evaluated only for answer token rows.
+    double value=0;
+    for(size_t i=0;i<found->second.size();++i) value+=double(found->second[i])*embedding[i];
+    return value;
+}
 static llama_token special(Engine & e, const std::string & s) { auto t=tokenize(e,s,true); if(t.size()!=1) throw std::runtime_error("必要な特殊トークンがありません: "+s); return t[0]; }
 static std::string escape(const std::string & s) { return std::regex_replace(s,std::regex("<\\|([A-Za-z0-9_]+)\\|>"),"<¦$1¦>"); }
+static std::string plain(const Engine & e, std::string text) {
+    for (const auto & token : e.special_spellings) {
+        size_t at=0;
+        while ((at=text.find(token,at))!=std::string::npos) {
+            const auto first=static_cast<unsigned char>(token[0]);
+            const size_t width=first<0x80?1:first<0xE0?2:first<0xF0?3:4;
+            text.insert(at+width,"\xE2\x80\x8B");
+            at+=token.size()+3;
+        }
+    }
+    return text;
+}
 static std::vector<double> softmax(const std::vector<double> & scores, double temperature) {
     if(scores.empty() || !(temperature>0)) throw std::runtime_error("判定出力が不正です");
     const double hi=*std::max_element(scores.begin(),scores.end());
@@ -91,7 +130,7 @@ static Question question(const json & j) {
 }
 static json run_question(Engine & e, const std::string & state, const Question & q, bool calibrated) {
     check(e);
-    llama_memory_clear(llama_get_memory(e.context),true);
+    if(auto * memory=llama_get_memory(e.context)) llama_memory_clear(memory,true);
     auto start=clock_type::now();
     double prepare_ms=0, forward_ms=0, encode_ms=0;
     std::vector<llama_token> ids; std::vector<int> markers;
@@ -122,14 +161,22 @@ static json run_question(Engine & e, const std::string & state, const Question &
         std::string body=q.instructions+"\n\n";
         if(q.type=="choice") {
             body+="Options:\n";
-            bool identity=std::all_of(q.labels.begin(),q.labels.end(),[](const std::string & s){return s.size()==1 && s[0]>='A' && s[0]<='Z';});
-            for(size_t i=0;i<q.labels.size();++i) { auto c=identity?q.labels[i]:std::string(1,char('A'+i)); codes.push_back(c); body+=c+" "+(q.descriptions[i].empty()?q.labels[i]:q.descriptions[i])+"\n"; }
+            bool identity=std::all_of(q.labels.begin(),q.labels.end(),[&](const std::string & s){return s.size()==1 && ((s[0]>='A' && s[0]<='Z') || (e.lfm3 && s[0]>='a' && s[0]<='z'));});
+            for(size_t i=0;i<q.labels.size();++i) {
+                auto c=identity?q.labels[i]:std::string(1,char('A'+i)); codes.push_back(c);
+                auto description=q.descriptions[i].empty()?q.labels[i]:q.descriptions[i];
+                if(e.lfm3 && q.descriptions[i].empty()) std::replace(description.begin(),description.end(),'_',' ');
+                body+=c+" "+description+"\n";
+            }
             body+="\nReply with the option code only.";
         } else if(q.type=="score") {
             for(size_t i=0;i<q.labels.size();++i) { codes.push_back(q.labels[i]); body+=q.labels[i]+" "+q.descriptions[i]+"\n"; }
             body+="\nReply with a single digit 0-"+q.labels.back()+" only.";
         } else body+="Reply with yes or no only.";
-        ids=tokenize(e,"<|im_start|>user\n"+state+"\n\n\nQUESTION:\n"+body+"<|im_end|>\n<|im_start|>assistant\n",true);
+        const std::string rendered_state=e.lfm3?plain(e,state):state;
+        const std::string rendered_body=e.lfm3?plain(e,body):body;
+        const bool media_only=e.lfm3 && state.empty() && !e.media_path.empty();
+        ids=tokenize(e,"<|im_start|>user\n"+(media_only?std::string{}:rendered_state+"\n\n\nQUESTION:\n")+rendered_body+"<|im_end|>\n<|im_start|>assistant\n"+(e.lfm3?"<think></think>":""),true);
         const auto bos=llama_vocab_bos(llama_model_get_vocab(e.model));
         if(bos>=0) ids.insert(ids.begin(),bos);
     }
@@ -160,7 +207,8 @@ static json run_question(Engine & e, const std::string & state, const Question &
         forward_ms=ms(forward_start);
         llama_batch_ext_free(batch); check(e);
         if(rc!=0) throw std::runtime_error("omni推論に失敗しました: "+std::to_string(rc));
-        for(auto m:markers) { auto * s=llama_get_embeddings_ith(e.context,m+prefix_count); if(!s) throw std::runtime_error("判定ヘッドの出力がありません"); scores.push_back(s[0]); }
+        const int column=q.type=="choice"?0:q.type=="score"?1:2;
+        for(auto m:markers) { auto * s=llama_get_embeddings_ith(e.context,m+prefix_count); if(!s) throw std::runtime_error("判定ヘッドの出力がありません"); scores.push_back(s[column]); }
     } else {
         if(!e.media_path.empty()) {
             std::string prompt;
@@ -173,7 +221,7 @@ static json run_question(Engine & e, const std::string & state, const Question &
             token_count=image.tokens; media_tokens=image.media_tokens;
             prepare_ms+=image.prepare_ms; encode_ms=image.encode_ms; forward_ms=image.forward_ms;
         } else {
-        const size_t step=512;
+        const size_t step=e.lfm3?e.limit:512;
         auto batch=llama_batch_init(step,0,1);
         prepare_ms=ms(start);
         for(size_t at=0;at<ids.size();at+=step) {
@@ -185,18 +233,28 @@ static json run_question(Engine & e, const std::string & state, const Question &
             int rc=llama_decode(e.context,batch);
             llama_synchronize(e.context);
             forward_ms+=ms(forward_start);
-            if(rc!=0) { llama_batch_free(batch); check(e); throw std::runtime_error("3B推論に失敗しました: "+std::to_string(rc)); }
+            if(rc!=0) { llama_batch_free(batch); check(e); throw std::runtime_error("判定の実行に失敗しました: "+std::to_string(rc)); }
         }
         llama_batch_free(batch); check(e);
         }
-        auto logits=llama_get_logits_ith(e.context,-1);
-        if(!logits) throw std::runtime_error("回答位置のlogitsがありません");
+        const float * logits=e.selective_output?nullptr:llama_get_logits_ith(e.context,-1);
+        const float * embedding=e.selective_output?llama_get_embeddings_ith(e.context,-1):nullptr;
+        if(!logits && !embedding) throw std::runtime_error("回答位置のlogitsがありません");
         std::vector<std::vector<std::string>> aliases;
         if(q.type=="noul") aliases={{"no","No","NO"},{"yes","Yes","YES"}};
         else for(auto & c:codes) aliases.push_back(q.type=="score"?std::vector<std::string>{c}:std::vector<std::string>{c," "+c});
         for(auto & group:aliases) {
             double v=-INFINITY;
-            for(auto & alias:group) { auto t=tokenize(e,alias); if(t.size()==1) v=std::max(v,double(logits[t[0]])); }
+            for(auto & alias:group) {
+                auto t=tokenize(e,alias);
+                if(t.size()==1) {
+                    if(e.selective_output) {
+                        auto head_start=clock_type::now();
+                        v=std::max(v,selected_logit(e,t[0],embedding));
+                        forward_ms+=ms(head_start);
+                    } else v=std::max(v,double(logits[t[0]]));
+                }
+            }
             scores.push_back(v);
         }
     }
@@ -207,15 +265,29 @@ static json run_question(Engine & e, const std::string & state, const Question &
         std::string key="lfm2.decision.temperature."+q.type+"."+bucket;
         char value[128]; if(llama_model_meta_val_str(e.model,key.c_str(),value,sizeof(value))>0) temperature=std::stod(value);
     }
+    if(e.lfm3 && calibrated) {
+        const int k=q.labels.size();
+        const std::string bucket=k==2?"2":k<=5?"3_5":k<=10?"6_10":"11";
+        for(const auto & key : {e.architecture+".decision.temperature."+q.type+"."+bucket,
+                               e.architecture+".decision.temperature."+q.type}) {
+            char value[128];
+            if(llama_model_meta_val_str(e.model,key.c_str(),value,sizeof(value))>0) { temperature=std::stod(value); break; }
+        }
+    }
     auto p=softmax(scores,temperature); auto best=std::max_element(p.begin(),p.end())-p.begin();
     json probs=json::array(); for(size_t i=0;i<p.size();++i) probs.push_back({{"label",q.labels[i]},{"description",q.descriptions[i]},{"probability",p[i]},{"logit",scores[i]}});
     double expected=0; for(size_t i=0;i<p.size();++i) expected+=i*p[i];
+    if(e.lfm3 && q.type=="score") {
+        double mass=0;
+        for(size_t i=0;i<p.size();++i) { mass+=p[i]; if(mass>=0.5) { expected=i; break; } }
+    }
     const double elapsed=ms(start);
     json result={{"type",q.type},{"instructions",q.instructions},{"selected",q.labels[best]},{"probabilities",probs},{"yesProbability",q.type=="noul"?json(p[1]):json(nullptr)},{"score",q.type=="score"?json(expected):json(nullptr)},{"confidence",p[best]},{"temperature",temperature},{"tokens",token_count},{"inferenceMs",elapsed},{"warnings",warnings},
         {"textTokens",token_count-media_tokens},{"mediaTokens",media_tokens},{"inputPrepareMs",prepare_ms},{"mediaEncodeMs",encode_ms},{"forwardMs",forward_ms},
         {"postprocessMs",std::max(0.0,elapsed-prepare_ms-encode_ms-forward_ms)},
         {"inputTokPerSec",forward_ms>0?json(token_count*1000.0/forward_ms):json(nullptr)},
-        {"throughputKind",e.omni?"encoder-head":"prefill"}};
+        {"throughputKind",e.lfm3?"decision":e.omni?"encoder-head":"prefill"},
+        {"scoreMethod",q.type=="score"?(e.lfm3?json("median"):json("mean")):json(nullptr)}};
     if(std::getenv("D1_DEBUG_TOKENS")) { result["debugTokenIds"]=ids; result["debugMarkers"]=markers; }
     return result;
 }
@@ -240,21 +312,55 @@ char * d1_load(void * p, const char * text) {
         e.model=llama_model_load_from_file(j.at("path").get<std::string>().c_str(),params);
         check(e);
         if(!e.model) throw std::runtime_error("GGUFを読み込めませんでした。モデルとチェックサムを確認してください");
-        char type[64]{};
-        if(llama_model_meta_val_str(e.model,"lfm2.decision.type",type,sizeof(type))<=0) throw std::runtime_error("d1専用GGUFを選択してください");
+        char architecture[64]{},type[64]{};
+        if(llama_model_meta_val_str(e.model,"general.architecture",architecture,sizeof(architecture))<=0) throw std::runtime_error("d1専用GGUFを選択してください");
+        e.architecture=architecture;
+        if(llama_model_meta_val_str(e.model,(e.architecture+".decision.type").c_str(),type,sizeof(type))<=0) throw std::runtime_error("d1専用GGUFを選択してください");
         const std::string decision_type(type);
         e.omni=decision_type=="d1omni" || decision_type=="lfm2-d1-omni";
-        if(decision_type!="d1" && decision_type!="lfm2-d1" && !e.omni) throw std::runtime_error("d1専用GGUFを選択してください");
+        e.lfm3=decision_type=="lfm3-d1" || decision_type=="lfm3-d1-omni";
+        e.supports_audio=e.omni || decision_type=="lfm3-d1-omni";
+        if(decision_type!="d1" && decision_type!="lfm2-d1" && !e.omni && !e.lfm3) throw std::runtime_error("d1専用GGUFを選択してください");
+        e.model_name=e.lfm3?(e.supports_audio?"d1-Omni-2B":"d1-2B"):(e.omni?"d1-omni-600M":"d1-3B");
+        e.special_spellings.clear();
+        if(e.lfm3) {
+            const auto * vocab=llama_model_get_vocab(e.model);
+            for(llama_token token=0;token<llama_vocab_n_tokens(vocab);++token) {
+                if(!(llama_vocab_get_attr(vocab,token)&(LLAMA_TOKEN_ATTR_CONTROL|LLAMA_TOKEN_ATTR_USER_DEFINED|LLAMA_TOKEN_ATTR_UNKNOWN))) continue;
+                const char * spelling=llama_vocab_get_text(vocab,token);
+                if(spelling && strlen(spelling)>1) e.special_spellings.emplace_back(spelling);
+            }
+            std::sort(e.special_spellings.begin(),e.special_spellings.end(),[](const auto & a,const auto & b){return a.size()>b.size();});
+        }
         e.limit=j.value("contextTokens",2048u);
         if(e.limit<128 || e.limit>4096) throw std::runtime_error("コンテキスト上限は128〜4096にしてください");
-        auto ctx=llama_context_default_params(); ctx.n_ctx=e.limit; ctx.n_batch=e.omni?e.limit:512; ctx.n_ubatch=e.omni?e.limit:128;
-        ctx.n_threads=4; ctx.n_threads_batch=4; ctx.embeddings=e.omni; ctx.pooling_type=LLAMA_POOLING_TYPE_NONE;
-        ctx.flash_attn_type=LLAMA_FLASH_ATTN_TYPE_DISABLED; ctx.abort_callback=abort_cb; ctx.abort_callback_data=&e;
+        const auto mode=j.value("performanceMode",std::string("optimized"));
+        if(mode!="optimized" && mode!="standard") throw std::runtime_error("推論設定が不正です");
+        const bool optimized=metal && !e.omni && !e.lfm3 && mode=="optimized";
+        const auto * weights=e.model->output;
+        const bool supported_output=weights && !e.model->output_s && !e.model->output_b &&
+            weights->ne[0]==llama_model_n_embd(e.model) &&
+            (weights->type==GGML_TYPE_F32 || ggml_get_type_traits(weights->type)->to_float);
+        e.selective_output=!e.omni && !e.lfm3 && supported_output && j.value("selectiveOutput",optimized);
+        // Keep the bidirectional omni batch intact. Only tune the causal 3B path.
+        const uint32_t micro_batch=j.value("prefillBatchTokens",128u);
+        if(micro_batch!=128 && micro_batch!=256 && micro_batch!=512) throw std::runtime_error("入力の処理単位が不正です");
+        const auto flash=j.value("flashAttention",std::string(e.lfm3?"auto":"off"));
+        if(flash!="auto" && flash!="off" && flash!="on") throw std::runtime_error("Attention設定が不正です");
+        if(e.omni && flash!="off") throw std::runtime_error("omniではこのAttention設定を利用できません");
+        auto ctx=llama_context_default_params(); ctx.n_ctx=e.limit; ctx.n_batch=e.omni||e.lfm3?e.limit:512; ctx.n_ubatch=e.omni||e.lfm3?e.limit:micro_batch;
+        ctx.n_threads=4; ctx.n_threads_batch=4; ctx.embeddings=e.omni || e.selective_output; ctx.pooling_type=LLAMA_POOLING_TYPE_NONE;
+        ctx.flash_attn_type=flash=="auto"?LLAMA_FLASH_ATTN_TYPE_AUTO:flash=="on"?LLAMA_FLASH_ATTN_TYPE_ENABLED:LLAMA_FLASH_ATTN_TYPE_DISABLED;
+        ctx.abort_callback=abort_cb; ctx.abort_callback_data=&e;
         ctx.op_offload=metal;
         e.context=llama_init_from_model(e.model,ctx); check(e);
         if(!e.context) throw std::runtime_error("推論コンテキストを確保できませんでした");
+        if(e.selective_output) e.context->set_embeddings_masked(true);
+        e.execution_config={{"performanceMode",mode},{"batchTokens",llama_n_batch(e.context)},
+            {"microBatchTokens",llama_n_ubatch(e.context)},{"flashAttention",e.context->get_cparams().flash_attn},
+            {"selectiveOutput",e.selective_output}};
         auto projector=j.value("projectorPath",std::string{});
-        if(!projector.empty()) e.media=std::make_unique<Media>(projector,e.model,e.omni,metal);
+        if(!projector.empty()) e.media=std::make_unique<Media>(projector,e.model,e.omni,metal,e.lfm3,e.limit);
         int gpu=0,cpu=0;
         for(auto & entry:llama_internal_get_tensor_map(e.model)) {
             auto * t=entry.second; if(!t->buffer) continue;
@@ -262,8 +368,8 @@ char * d1_load(void * p, const char * text) {
             if(dev && ggml_backend_dev_type(dev)==GGML_BACKEND_DEVICE_TYPE_GPU) ++gpu; else ++cpu;
         }
         if(metal && gpu==0) throw std::runtime_error("GPUに重みが配置されませんでした");
-        e.placement={{"requested",metal?"Metal":"CPU"},{"actual",gpu>0?(cpu>0?"Metal + CPU":"Metal"):"CPU"},{"gpuTensors",gpu},{"cpuTensors",cpu},{"runtimeCommit","18b5f8b1862ebfe0f1c33d2355b81a54d2fec867+d1-lab-v2"}};
-        return output({{"model",e.omni?"d1-omni-600M":"d1-3B"},{"loadMs",ms(start)},{"placement",e.placement},{"contextTokens",e.limit},{"processMemory",memory_snapshot()}});
+        e.placement={{"requested",metal?"Metal":"CPU"},{"actual",gpu>0?(cpu>0?"Metal + CPU":"Metal"):"CPU"},{"gpuTensors",gpu},{"cpuTensors",cpu},{"runtimeCommit","d05706b4f32a545814856e98ca518292585443b9+d1-lab-v4"}};
+        return output({{"model",e.model_name},{"loadMs",ms(start)},{"placement",e.placement},{"contextTokens",e.limit},{"executionConfig",e.execution_config},{"processMemory",memory_snapshot()}});
     } catch(const std::exception & ex) { e.unload(); return error(ex); }
 }
 char * d1_run(void * p, const char * text) {
@@ -275,7 +381,7 @@ char * d1_run(void * p, const char * text) {
         double encode_ms=0;
         if(!e.media_path.empty()) {
             if(!e.media) throw std::runtime_error("画像・音声用プロジェクターを取得してください");
-            if(!e.omni && e.audio) throw std::runtime_error("音声入力はomniに切り替えてください");
+            if(!e.supports_audio && e.audio) throw std::runtime_error("音声入力はomniに切り替えてください");
             if(e.omni) { auto encoded=clock_type::now(); e.prefix=e.media->encode(e.media_path,e.audio); encode_ms=ms(encoded); check(e); }
         }
         std::string prefix_dump;
@@ -293,12 +399,13 @@ char * d1_run(void * p, const char * text) {
             post_ms+=r["postprocessMs"].get<double>(); encode_ms+=r["mediaEncodeMs"].get<double>();
             tokens+=r["tokens"].get<size_t>(); text_tokens+=r["textTokens"].get<size_t>(); media_tokens+=r["mediaTokens"].get<size_t>();
         }
-        json result={{"model",e.omni?"d1-omni-600M":"d1-3B"},{"results",results},{"totalMs",ms(start)},{"mediaEncodeMs",encode_ms},{"prefixTokens",e.prefix.size()/llama_model_n_embd_inp(e.model)},{"audioSeconds",e.media?e.media->seconds:0},{"placement",e.placement},{"processMemory",memory_snapshot()}};
+        json result={{"model",e.model_name},{"results",results},{"totalMs",ms(start)},{"mediaEncodeMs",encode_ms},{"prefixTokens",e.prefix.size()/llama_model_n_embd_inp(e.model)},{"audioSeconds",e.media?e.media->seconds:0},{"placement",e.placement},{"processMemory",memory_snapshot()}};
         result["metricsVersion"]=1;
+        result["executionConfig"]=e.execution_config;
         result["forwardMs"]=forward_ms; result["inputPrepareMs"]=prepare_ms; result["postprocessMs"]=post_ms;
         result["inputTokens"]=tokens; result["textTokens"]=text_tokens; result["mediaTokens"]=media_tokens;
         result["inputTokPerSec"]=forward_ms>0?json(tokens*1000.0/forward_ms):json(nullptr);
-        result["throughputKind"]=e.omni?"encoder-head":"prefill";
+        result["throughputKind"]=e.lfm3?"decision":e.omni?"encoder-head":"prefill";
         if(!prefix_dump.empty()) result["debugPrefixFile"]=prefix_dump;
         return output(result);
     } catch(const std::exception & ex) { return error(ex); }
