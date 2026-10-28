@@ -134,6 +134,9 @@ class SourceExportTests(unittest.TestCase):
             self.assertIn('D1 Lab contributors.', settings)
             self.assertFalse((app / 'lib/smoke_main.dart').exists())
             self.assertFalse((app / 'lib/preview_main.dart').exists())
+            self.assertFalse((app / 'lib/perf_main.dart').exists())
+            self.assertFalse((app / 'lib/lfm3_main.dart').exists())
+            self.assertFalse((staged / 'native/decision_bridge/scripts/benchmark_prefill.py').exists())
             self.assertTrue((staged / '.github/workflows/checks.yml').is_file())
             self.assertTrue((staged / 'LICENSE').is_file())
             for path in staged.rglob('*'):

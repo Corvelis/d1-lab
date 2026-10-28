@@ -2,7 +2,7 @@
 
 [日本語](README.md)
 
-The Flutter inference plugin for D1 Lab. It runs d1-3B / d1-omni-600M with CPU or Metal on iOS 16+ and macOS 14+ on Apple Silicon.
+The Flutter inference plugin for D1 Lab. It runs d1-2B / d1-Omni-2B / d1-3B / d1-omni-600M with CPU or Metal on iOS 16+ and macOS 14+ on Apple Silicon.
 
 See the [D1 Lab guide](../../apps/d1_lab/docs/README.en.md) to try the app, or the [build instructions](../../apps/d1_lab/docs/building.en.md) to prepare it.
 
@@ -20,6 +20,6 @@ The same setup script can verify and install a prebuilt runtime. See the [build 
 
 ## Source and licenses
 
-The upstream revision and archive SHA-256 are pinned in `runtime.lock.json`. `patch_runtime.py` and `patch_media.py` add the d1 decision head and media processing. The C API is in `include/decision.h`.
+The upstream revision and archive SHA-256 are pinned in `runtime.lock.json`. `patch_runtime.py` selects output embeddings for d1-3B; `patch_media.py` adds bounded audio-file decoding. Model architectures and multimodal encoding are provided by the pinned upstream revision. The C API is in `include/decision.h`.
 
 This package's source is [Apache-2.0](LICENSE). Dependency licenses are listed in [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md) and included in `licenses/`. Model licenses are separate.

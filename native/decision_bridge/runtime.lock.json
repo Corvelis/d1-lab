@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "runtimeVersion": "0.2.0",
-  "llamaRevision": "18b5f8b1862ebfe0f1c33d2355b81a54d2fec867",
-  "llamaArchiveSha256": "43074b7adba55d4f62d4b36f5bcc4b13b3d9984506b57ac561ca9794b78e72e2"
+  "runtimeVersion": "0.3.0",
+  "llamaRevision": "d05706b4f32a545814856e98ca518292585443b9",
+  "llamaArchiveSha256": "65b13ebdf4e03cefe58f27096e9af698dc3d41ec6f63f6cd9b4a32ce02e525cf"
 }

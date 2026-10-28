@@ -101,13 +101,61 @@ class ModelSpec {
     this.name,
     this.quantization,
     this.base,
-    this.projector,
-  );
+    this.projector, {
+    this.generation = 'lfm2',
+    this.supportsAudio = false,
+  });
   final String id, name, quantization;
+  final String generation;
+  final bool supportsAudio;
   final ModelAsset base, projector;
+  bool get isLfm3 => generation == 'lfm3';
+  bool get isBidirectional => isLfm3 || supportsAudio;
+  bool get supportsCalibration => isLfm3 || supportsAudio;
 }
 
 const modelSpecs = [
+  ModelSpec(
+    '2b',
+    'd1-2B',
+    'Q4_K_M',
+    ModelAsset(
+      'LiquidAI/d1-2B-GGUF',
+      '63be75e6586882defeb706ed4bda812d90256a6d',
+      'd1-2B-Q4_K_M.gguf',
+      1099629888,
+      'adca5789ad30ae6027e8e936749bb9f19673097492ab26fa1c5b69643ca50b4b',
+    ),
+    ModelAsset(
+      'LiquidAI/d1-2B-GGUF',
+      '63be75e6586882defeb706ed4bda812d90256a6d',
+      'mmproj-d1-2B-Q8_0.gguf',
+      203031584,
+      '62cc6d74fd1e5b1d6b48518566bf4c0cfd2468079a0c096ea323b74eed01e0d1',
+    ),
+    generation: 'lfm3',
+  ),
+  ModelSpec(
+    'omni2b',
+    'd1-Omni-2B',
+    'Q8_0',
+    ModelAsset(
+      'LiquidAI/d1-Omni-2B-GGUF',
+      '807fea1af72ebaef653404f64a4bec8e5afeedea',
+      'd1-Omni-2B-Q8_0.gguf',
+      1846241184,
+      'aedf1a7c341b4281979423dbc39e9c3d3ad1da8834156c8e75af5399ca3b0861',
+    ),
+    ModelAsset(
+      'LiquidAI/d1-Omni-2B-GGUF',
+      '807fea1af72ebaef653404f64a4bec8e5afeedea',
+      'mmproj-d1-Omni-2B-Q8_0.gguf',
+      326104096,
+      '31778160ac0ec70f9b59f296aa1c8e70cbd1eb7e3a3ff873d695aaa4c7b8d674',
+    ),
+    generation: 'lfm3',
+    supportsAudio: true,
+  ),
   ModelSpec(
     '3b',
     'd1-3B',
@@ -172,6 +220,7 @@ const modelSpecs = [
         ),
       ],
     ),
+    supportsAudio: true,
   ),
 ];
 
