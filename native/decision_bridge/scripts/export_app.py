@@ -79,6 +79,8 @@ def copy_source(staged):
         check_portable(data, 'apps/d1_lab/' + name)
         target.write_bytes(data)
     for source, relative in selected(ROOT, {'src', 'include', 'lib', 'scripts', 'licenses', 'tests'}, NATIVE_FILES):
+        if relative.as_posix() == 'scripts/benchmark_prefill.py':
+            continue
         target = native / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         data = source.read_bytes()

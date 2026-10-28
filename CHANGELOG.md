@@ -7,18 +7,14 @@
 - Choose two models for comparison; compare both Omni models with the same recording.
 - Display LFM3 score medians and input throughput, alongside Total, Decision and media timing.
 - Add Japanese and English everyday-sound samples and update bilingual guides.
+- Use the D1 Lab icon and app background color on the iOS launch screen.
+- Document external TestFlight setup, beta review notes and privacy disclosures in Japanese and English.
 - GGUF support covers Choice, Noul and Score. Other LFM3 output types and video are not included.
 
 ## 0.13.2
 
 - Reduce 3B Metal output projection to the answer candidates.
 - Use DecisionRuntime 0.2.1. Omni and CPU inference settings are unchanged.
-
-## 0.13.1
-
-- Use D1 Lab branding and the app background color on the iOS launch screen.
-- Explain TestFlight diagnostics and feedback in the Japanese and English privacy policies.
-- Add bilingual external-testing instructions, beta descriptions and review notes.
 
 ## 0.13.0
 
