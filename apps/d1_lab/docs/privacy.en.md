@@ -4,7 +4,7 @@ D1 Lab evaluates text, photos and recordings using models on your device. It doe
 
 ## Inputs and results
 
-The app does not send your input text, instructions, photos, recordings or results to a developer server or external AI service. Decisions run on your iPhone or Mac. The app has no advertising or analytics features.
+During evaluation, the app does not send your input text, instructions, photos, recordings or results to a developer server or external AI service. Decisions run on your iPhone, iPad or Mac. The app has no advertising or analytics features.
 
 ## Data stored on your device
 
@@ -17,6 +17,12 @@ Depending on your operating system and backup settings, saved data may be includ
 Model downloads connect to Hugging Face and its delivery services. Connection information such as your IP address is available to those services. Download requests do not include your decision text, photos or recordings. After downloading, you can run decisions offline.
 
 Hugging Face privacy policy: https://huggingface.co/privacy
+
+## When using TestFlight
+
+Apple automatically collects crash logs and usage information through TestFlight and shares them with the developer. Feedback and screenshots you submit are also shared. The developer uses this information to investigate and improve the app and does not share it with third parties. When joining only through a public link, your invitation name and email address are not shown to the developer; information you include in feedback is shared. Do not attach personal inputs, photos or recordings to reports.
+
+See [TestFlight & Privacy](https://www.apple.com/legal/privacy/data/en/test-flight/) for Apple's storage and deletion practices. This is separate from the app's local evaluation of inputs.
 
 ## Camera, photos and microphone
 
@@ -38,4 +44,4 @@ If you save or copy a run as JSON, it includes input text, instructions, answers
 
 Contact us through GitHub Issues in the public repository. Do not attach inputs or media containing personal information to public reports. This policy will be updated when data handling changes.
 
-Last updated: October 9, 2026
+Last updated: October 10, 2026

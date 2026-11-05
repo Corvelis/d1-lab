@@ -8,6 +8,7 @@
 - Display LFM3 score medians and input throughput, alongside Total, Decision and media timing.
 - Add Japanese and English everyday-sound samples and update bilingual guides.
 - Use the D1 Lab icon and app background color on the iOS launch screen.
+- Document external TestFlight setup, beta review notes and privacy disclosures in Japanese and English.
 - GGUF support covers Choice, Noul and Score. Other LFM3 output types and video are not included.
 
 ## 0.13.2
