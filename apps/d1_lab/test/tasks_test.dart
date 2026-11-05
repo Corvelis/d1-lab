@@ -83,7 +83,7 @@ void main() {
       expect(lab.savedTasks.first.inputKind, kind);
       expect(lab.inputKind, kind);
       expect(lab.mediaPath, isNull);
-      if (kind == 'audio') expect(lab.modelId, 'omni');
+      if (kind == 'audio') expect(lab.modelId, 'omni2b');
     }
     await lab.readTasks();
     expect(lab.savedTasks.map((t) => t.inputKind), ['audio', 'image', 'text']);
@@ -111,7 +111,7 @@ void main() {
       lab.mediaInfo = {'width': 256, 'height': 256};
       await lab.saveTask('声で判定', kind: 'audio');
       expect(lab.inputKind, 'audio');
-      expect(lab.modelId, 'omni');
+      expect(lab.modelId, 'omni2b');
       expect(lab.mediaPath, isNull);
       expect(lab.imageSourcePath, isNull);
       expect(lab.mediaHash, isNull);
@@ -162,9 +162,9 @@ void main() {
     }
     expect(builtinTasks.where((t) => t.inputKind == 'image'), hasLength(4));
     lab.loadTask(builtinTasks.firstWhere((t) => t.inputKind == 'audio'));
-    expect(lab.modelId, 'omni');
+    expect(lab.modelId, 'omni2b');
     expect(lab.missingInput, contains('録音'));
     lab.loadTask(builtinTasks.firstWhere((t) => t.inputKind == 'image'));
-    expect(lab.modelId, '3b');
+    expect(lab.selectedModel.supportsAudio, true);
   });
 }

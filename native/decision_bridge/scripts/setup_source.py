@@ -25,8 +25,13 @@ def main():
     expected = dict(pinned, patches=patches)
     if source.is_dir() and stamp.is_file():
         recorded = json.loads(stamp.read_text())
-        if all(recorded.get(key) == value for key, value in expected.items()):
+        # The bridge version does not change the locked upstream source.
+        if all(recorded.get(key) == expected[key] for key in
+               ['schemaVersion', 'llamaRevision', 'llamaArchiveSha256', 'patches']):
             if recorded.get('files') == inventory(source):
+                if recorded.get('runtimeVersion') != pinned['runtimeVersion']:
+                    recorded['runtimeVersion'] = pinned['runtimeVersion']
+                    stamp.write_text(json.dumps(recorded, indent=2) + '\n')
                 print('Pinned runtime source verified.')
                 return
     source.parent.mkdir(exist_ok=True)

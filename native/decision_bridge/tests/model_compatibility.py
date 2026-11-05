@@ -19,13 +19,15 @@ REQUEST = {
          'levels': ['不満', '普通', '満足']},
     ],
 }
-MODELS = [('d1-3B', 'd1-3B-Q4_K_M.gguf'),
+MODELS = [('d1-2B', 'd1-2B-Q4_K_M.gguf'),
+          ('d1-Omni-2B', 'd1-Omni-2B-Q8_0.gguf'),
+          ('d1-3B', 'd1-3B-Q4_K_M.gguf'),
           ('d1-omni-600M', 'd1-omni-600M-Q8_0.gguf')]
 
 
-def evaluate(cli, directory, backend):
+def evaluate(cli, directory, backend, models=MODELS):
     answers = {}
-    for name, filename in MODELS:
+    for name, filename in models:
         result = subprocess.run(
             [str(cli.resolve()), str((directory / filename).resolve()), backend],
             input=json.dumps(REQUEST, ensure_ascii=False) + '\n',
@@ -49,6 +51,13 @@ def evaluate(cli, directory, backend):
             if (not all(math.isfinite(p) and 0 <= p <= 1 for p in probabilities)
                     or abs(sum(probabilities) - 1) > 1e-6):
                 raise ValueError(f'{name}: invalid probability distribution')
+        if name in {'d1-2B', 'd1-Omni-2B'}:
+            score = run['results'][2]
+            if score.get('scoreMethod') != 'median' or score['score'] != int(score['score']):
+                raise ValueError(f'{name}: expected the discrete score median')
+            expected = 1.337398 if name == 'd1-2B' else 3.382983
+            if any(abs(item['temperature'] - expected) > 1e-5 for item in run['results']):
+                raise ValueError(f'{name}: incorrect calibration temperature')
         answers[name] = run['results']
     return answers
 
@@ -64,9 +73,13 @@ def main():
     args = parser.parse_args()
     current = evaluate(args.cli, args.current_models, args.backend)
     if args.previous_models:
-        previous = evaluate(args.cli, args.previous_models, args.backend)
+        previous_models = [(name, file) for name, file in MODELS
+                           if (args.previous_models / file).is_file()]
+        if not previous_models:
+            raise ValueError('No supported models found in the previous-models directory')
+        previous = evaluate(args.cli, args.previous_models, args.backend, previous_models)
         if args.expect_parity:
-            for name in current:
+            for name in previous:
                 for before, after in zip(previous[name], current[name]):
                     if before['selected'] != after['selected'] or before['temperature'] != after['temperature']:
                         raise ValueError(f'{name}: release changed the selected answer or calibration')

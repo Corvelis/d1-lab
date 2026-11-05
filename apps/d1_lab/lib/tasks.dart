@@ -227,7 +227,22 @@ const builtinTasks = [
       ),
     ],
     check:
-        '「音楽を止めて」と録音し、「停止」を選ぶか確認します。補足文は不要です。音声は英語で学習されているため、日本語の精度も確認してください。',
+        '「音楽を止めて」と録音し、「停止」を選ぶか確認します。補足文は不要です。d1-Omni-2Bでは日本語の音声も試せます。発話を変え、答えと確率を比べてください。',
+  ),
+  D1Task(
+    id: 'audio-sound-jp',
+    title: '身の回りの音を分類',
+    inputKind: 'audio',
+    description: '会話・音楽・拍手などを、録音から選びます。',
+    state: '',
+    questions: [
+      TaskQuestion(
+        'choice',
+        '録音の主な音を選んでください。',
+        '会話|人が話す声\n音楽|歌や楽器の演奏\n拍手|手をたたく音\n生活音|水やドアなどの音\nその他|該当なし',
+      ),
+    ],
+    check: '手を数回たたいて録音し、「拍手」が選ばれるか確認します。別の音や無音でも比べてみてください。',
   ),
 ];
 
@@ -402,7 +417,25 @@ const englishTasks = [
       ),
     ],
     check:
-        'Record “Stop the music” and check whether Stop is selected. No additional text is needed. Audio evaluation is experimental and trained on English speech.',
+        'Record “Stop the music” and check whether Stop is selected. No additional text is needed. Try other commands and languages supported by d1-Omni-2B, then compare answers and probabilities.',
+  ),
+  D1Task(
+    id: 'audio-sound-en',
+    title: 'Everyday sounds',
+    language: '英語',
+    inputKind: 'audio',
+    description:
+        'Choose speech, music, clapping or another sound from a recording.',
+    state: '',
+    questions: [
+      TaskQuestion(
+        'choice',
+        'Choose the main sound in the recording.',
+        'Speech|People speaking\nMusic|Singing or instruments\nClapping|Hands clapping\nHousehold sound|Water or doors\nOther|None of the above',
+      ),
+    ],
+    check:
+        'Record a few claps and check whether Clapping is selected. Compare with another sound or silence.',
   ),
 ];
 

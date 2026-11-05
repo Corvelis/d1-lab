@@ -1,6 +1,6 @@
 # D1 Lab
 
-Try Liquid AI's **d1-3B / d1-omni-600M** on your iPhone or Apple Silicon Mac. Evaluate text, photos and recordings, inspect answer probabilities, and measure processing time. iOS inference runs locally with Metal.
+Try Liquid AI's LFM3 **d1-2B / d1-Omni-2B**, alongside d1-3B / d1-omni-600M, on your iPhone or Apple Silicon Mac. Evaluate text, photos and recordings, inspect answer probabilities, and measure processing time. iOS inference runs locally with Metal.
 
 [日本語](../README.md) · [Quick start](quickstart.en.md) · [Build instructions](building.en.md) · [Privacy](privacy.en.md)
 
@@ -12,12 +12,12 @@ Follow the [build instructions](building.en.md) to prepare the app. Once it is r
 
 ![D1 Lab interface preview with English captions](videos/d1-lab-quick-tour-en.gif)
 
-English captions guide you through the Japanese iPhone interface: choosing a task, running a text decision, reading timing, editing criteria, saving a task, photo/audio controls, comparison, history and model management. Models are already downloaded and prepared. Follow the [quick start](quickstart.en.md) for first-time setup.
+English captions guide you through the Japanese iPhone interface: choosing a task, running a text decision, reading timing, editing criteria, saving a task, photo/audio controls, comparison, history and model management. The video uses earlier models, already downloaded and prepared. The current version also offers the two LFM3 models. Follow the [quick start](quickstart.en.md) for first-time setup.
 
 ## Your first decision
 
 1. Open **Choose a task** and select **Review sentiment** from the English samples.
-2. Select **d1-3B**.
+2. Select **d1-2B**.
 3. Tap **Download a model to start**, then **Download files for this task**.
 4. Return to **Try** and tap **Run decision**.
 5. Read the selected answer and probabilities for Positive, Negative and Neutral.
@@ -29,9 +29,9 @@ A task combines the material to evaluate, a natural-language instruction, and an
 
 **Photo:** Open **Choose a task** → **Images** → **Main photo color**. Tap **Take a photo** or **Choose photo**, attach one photo, download the required model files, then tap **Run decision**. Other samples include **Classify the subject**, **Document type** and **Is there a cup?**
 
-**Recording:** Open **Choose a task** → **Audio** → **Voice controls**. The app selects d1-omni. Tap **Record audio**, speak, then **Stop and use** → **Run decision**. Recordings are limited to 30 seconds.
+**Recording:** Open **Choose a task** → **Audio** → **Voice controls**. Use an audio-capable model. If a text-only model was selected, the app switches to d1-Omni-2B. Tap **Record audio**, speak, then **Stop and use** → **Run decision**. Recordings are limited to 30 seconds.
 
-Photo and audio tasks can run with **Additional context** left empty. Keep the instruction and answer options in the task; you do not need to type a transcript. Omni's audio capabilities were trained on English speech, so evaluate Japanese recordings for your use case. The model returns decisions rather than free-form conversation or transcripts.
+Photo and audio tasks can run with **Additional context** left empty. Keep the instruction and answer options in the task; you do not need to type a transcript. d1-Omni-2B also accepts Japanese speech and everyday sounds. Try the Everyday sounds sample and check answer quality for your use case. The model returns decisions rather than free-form conversation or transcripts.
 
 Image and audio tasks need an additional projector file. **Download files for this task** downloads the required files together. Use one photo or one recording per run. The OS requests permission when you first use the camera or microphone.
 
@@ -45,10 +45,10 @@ Use **Image long edge** in the photo card to choose 256, 512, 768, 1024, 1536 or
 | --- | --- |
 | Choice | Probabilities for the specified options and the selected answer |
 | Noul | Probability of Yes; a value near 0.5 indicates uncertainty |
-| Score | Expected rating, with levels numbered 0, 1, 2… from low to high |
+| Score | Rating levels numbered 0, 1, 2… from low to high; the distribution median for LFM3, expected rating for earlier models |
 | Total | This run’s file checks, any loading and unloading, evaluation and the app bridge |
-| Prefill tok/s (3B) | Processed input tokens divided by main-model computation time |
-| Input speed (omni) | Throughput of the bidirectional encoder and decision head |
+| Prefill tok/s (d1-3B) | Processed input tokens divided by main-model computation time |
+| Input speed (LFM3 and 600M) | Input tokens divided by main-model computation time |
 
 **Measurement breakdown** separates loading, media encoding and model computation. Token throughput excludes loading and media encoding. Total excludes taking photos, recording, saving history and rendering the screen. Results show **Includes model loading** or **Reusing the loaded model**.
 
@@ -56,7 +56,11 @@ Use **Prepare model** at the top of the screen to load the selected model before
 
 Normal runs keep one model loaded. Rerunning with the same model, backend, input limit and projector skips reloading. Inputs are processed every time, including after text or criteria changes. Keeping a model loaded uses memory; it is released when you leave the app or the OS reports memory pressure. Turn off **Keep the model ready** in **Advanced settings** to load and unload every run.
 
-**Compare** sends the same input to both models sequentially, loading and unloading each one afresh. OS and Metal caches are not reset, so this is not a controlled cold-start benchmark. Check each model's answer, probabilities and processing speed. Audio is supported by omni only.
+To compare speed, prepare the model, then rerun the same task several times and check Total, Decision and input throughput (Input speed or Prefill tok/s). Speed depends on the device and input.
+
+**Compare** lets you choose two of the four models and sends the same input to them sequentially, loading and unloading each one afresh. OS and Metal caches are not reset, so this is not a controlled cold-start benchmark. Check each model's answer, probabilities and processing speed. For audio, compare d1-Omni-2B with d1-omni-600M.
+
+This app supports the Choice, Noul and Score types available in GGUF. LFM3 extraction, numeric estimation, multiple selection, bounding boxes and video input are unavailable in this version. The app input limit can be set up to 4,096 tokens.
 
 ## Models and storage
 
@@ -70,6 +74,8 @@ If a download fails with HTTP 403, update the app and retry. If it still fails, 
 
 | Model | Main model | Additional media data | Inputs |
 | --- | --- | --- | --- |
+| d1-2B (Q4_K_M) | About 1.10 GB | About 203 MB (Q8_0) | Text, images |
+| d1-Omni-2B (Q8_0) | About 1.85 GB | About 326 MB (Q8_0) | Text, images, audio |
 | d1-3B (Q4_K_M) | About 1.67 GB | About 583 MB (Q8_0) | Text, images |
 | d1-omni-600M (Q8_0) | About 407 MB | About 263 MB (Q8_0) | Text, images, audio |
 
@@ -81,13 +87,13 @@ Inference inputs are not sent to a server. Photos, recordings and run history ar
 
 Use the translation icon to choose System, Japanese or English. This changes the interface without rewriting your input, attachments or previous results. Choose the sample language separately in the task picker.
 
-Enter a **Task name** below the decision criteria and choose **Automatic**, **Text**, **Images** or **Audio** in **Category**. The default, Automatic, uses the attachment type or the selected task's type. Tap **Save these criteria as a task**, then find it in **Choose a task** → the matching category → **My tasks** to reuse your input and criteria. Saved photo and audio tasks require a new attachment each time. Audio tasks select omni.
+Enter a **Task name** below the decision criteria and choose **Automatic**, **Text**, **Images** or **Audio** in **Category**. The default, Automatic, uses the attachment type or the selected task's type. Tap **Save these criteria as a task**, then find it in **Choose a task** → the matching category → **My tasks** to reuse your input and criteria. Saved photo and audio tasks require a new attachment each time. Audio tasks use an audio-capable model.
 
 ## Supported devices
 
 iOS 16 or later, or macOS 14 or later on Apple Silicon. Speed and memory use depend on your device, input and settings. Android inference is not supported yet.
 
-d1-omni is experimental. Sample answers are not guaranteed. Change the instructions and options to evaluate accuracy for your own use case.
+d1-omni-600M is an early experimental model. Sample answers are not guaranteed. Change the instructions and options to evaluate accuracy for your own use case.
 
 ## Licenses
 
@@ -97,4 +103,4 @@ Models are governed separately by the [LFM Open License](https://www.liquid.ai/l
 
 This is not an official Liquid AI app.
 
-Sources: [d1-3B GGUF](https://huggingface.co/LiquidAI/d1-3B-GGUF) · [d1-omni GGUF](https://huggingface.co/LiquidAI/d1-omni-600M-GGUF) · [llama.cpp](https://github.com/ggml-org/llama.cpp)
+Sources: [d1-2B GGUF](https://huggingface.co/LiquidAI/d1-2B-GGUF) · [d1-Omni-2B GGUF](https://huggingface.co/LiquidAI/d1-Omni-2B-GGUF) · [d1-3B GGUF](https://huggingface.co/LiquidAI/d1-3B-GGUF) · [d1-omni GGUF](https://huggingface.co/LiquidAI/d1-omni-600M-GGUF) · [llama.cpp](https://github.com/ggml-org/llama.cpp)

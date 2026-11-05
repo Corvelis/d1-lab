@@ -16,16 +16,18 @@ Targets: iOS 16+, macOS 14+, and the arm64 iOS simulator.
 
 ## 1. Prepare the inference runtime
 
+Use the release matching your source version. If a matching prebuilt runtime is not available yet, follow **Build from source** below.
+
 From the repository root, choose either method.
 
 ### Use a prebuilt release (recommended)
 
-Download the release's `DecisionRuntime-0.2.0-apple-arm64.zip` and `SHA256SUMS` into the repository root, then run:
+Download the release's `DecisionRuntime-0.3.0-apple-arm64.zip` and `SHA256SUMS` into the repository root, then run:
 
 ```sh
-runtime_sha=$(awk '$2 == "DecisionRuntime-0.2.0-apple-arm64.zip" {print $1}' SHA256SUMS)
+runtime_sha=$(awk '$2 == "DecisionRuntime-0.3.0-apple-arm64.zip" {print $1}' SHA256SUMS)
 python3 native/decision_bridge/scripts/prepare_runtime.py \
-  --archive DecisionRuntime-0.2.0-apple-arm64.zip --sha256 "$runtime_sha"
+  --archive DecisionRuntime-0.3.0-apple-arm64.zip --sha256 "$runtime_sha"
 ```
 
 The script verifies the archive checksum, matching source version, libraries and licenses before installing. Failed verification leaves the existing runtime unchanged. Use the release corresponding to your source checkout.

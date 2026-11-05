@@ -154,7 +154,7 @@ void main() {
       await lab.stopRecording();
       expect(lab.locked, false);
       expect(lab.mediaType, 'audio');
-      expect(lab.modelId, 'omni');
+      expect(lab.modelId, 'omni2b');
       expect(lab.mediaInfo!['durationSeconds'], 2);
       expect(await File(lab.mediaPath!).exists(), true);
       expect(await File(device.recordingPath!).exists(), false);

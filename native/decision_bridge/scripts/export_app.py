@@ -56,7 +56,7 @@ def copy_source(staged):
     native = staged / 'native/decision_bridge'
     for source, relative in selected(APP, {'lib', 'test', 'docs', 'assets', 'ios', 'macos'}, APP_FILES):
         name = relative.as_posix()
-        if name in {'lib/smoke_main.dart', 'lib/preview_main.dart'}:
+        if name in {'lib/smoke_main.dart', 'lib/preview_main.dart', 'lib/perf_main.dart', 'lib/lfm3_main.dart'}:
             continue
         if relative.suffix in {'.lock'} and relative.name == 'Podfile.lock':
             continue
@@ -79,6 +79,8 @@ def copy_source(staged):
         check_portable(data, 'apps/d1_lab/' + name)
         target.write_bytes(data)
     for source, relative in selected(ROOT, {'src', 'include', 'lib', 'scripts', 'licenses', 'tests'}, NATIVE_FILES):
+        if relative.as_posix() == 'scripts/benchmark_prefill.py':
+            continue
         target = native / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         data = source.read_bytes()

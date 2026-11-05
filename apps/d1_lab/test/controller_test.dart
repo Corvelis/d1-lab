@@ -40,9 +40,11 @@ class RecordingRuntime implements DecisionRuntime {
     expect(events.isEmpty || events.last == 'unload', true);
     events.add('load');
     loaded++;
-    model = (request['path'] as String).contains('3B')
-        ? 'd1-3B'
-        : 'd1-omni-600M';
+    model = modelSpecs
+        .firstWhere(
+          (m) => (request['path'] as String).endsWith('/${m.base.filename}'),
+        )
+        .name;
     loadRequests.add(request);
     loadStarted?.complete();
     await finishLoad?.future;
@@ -113,6 +115,27 @@ void main() {
       await lab.execute();
       expect(lab.error, contains('判断材料'));
       expect(runtime.requests, hasLength(2));
+    },
+  );
+  test(
+    'audio comparison uses both Omni models and preserves the recording',
+    () async {
+      lab.state = '';
+      lab.inputKind = 'audio';
+      lab.mediaType = 'audio';
+      lab.mediaPath = 'recording.wav';
+      for (final model in modelSpecs.where((m) => m.supportsAudio)) {
+        lab.available[model.projector.filename] = true;
+      }
+      await lab.execute(compare: true);
+      expect(lab.error, isEmpty);
+      expect(lab.latest!['runs'].map((r) => r['model']), [
+        'd1-Omni-2B',
+        'd1-omni-600M',
+      ]);
+      expect(runtime.requests, hasLength(2));
+      expect(runtime.requests[0], runtime.requests[1]);
+      expect(lab.mediaPath, 'recording.wav');
     },
   );
   test(
@@ -241,6 +264,37 @@ void main() {
       await lab.execute();
       expect(runtime.loaded, 4);
       expect(runtime.loadRequests.last.containsKey('projectorPath'), false);
+    },
+  );
+  test(
+    'changing 3B performance settings reloads once and then reuses',
+    () async {
+      lab.modelId = '3b';
+      await lab.prepareModel();
+      expect(lab.modelReady, true);
+      expect(runtime.loadRequests.last['performanceMode'], 'optimized');
+      lab.performanceMode = 'standard';
+      expect(lab.modelReady, false);
+      await lab.settingsChanged();
+      await lab.execute();
+      expect(runtime.loadRequests.last['performanceMode'], 'standard');
+      await lab.execute();
+      expect(runtime.loaded, 2);
+      expect(lab.latest!['runs'][0]['runtimeReused'], true);
+    },
+  );
+  test(
+    'omni keeps its original settings when the 3B preference changes',
+    () async {
+      lab.modelId = 'omni';
+      await lab.prepareModel();
+      expect(runtime.loadRequests.last['performanceMode'], 'standard');
+      lab.performanceMode = 'standard';
+      await lab.settingsChanged();
+      expect(lab.modelReady, true);
+      await lab.execute();
+      expect(runtime.loaded, 1);
+      expect(lab.latest!['runs'][0]['runtimeReused'], true);
     },
   );
   test(
@@ -436,7 +490,7 @@ void main() {
       expect(lab.modelReady, true);
       lab.modelId = 'omni';
       expect(lab.modelReady, false);
-      lab.modelId = '3b';
+      lab.modelId = '2b';
       lab.backend = 'cpu';
       expect(lab.modelReady, false);
       lab.backend = 'metal';

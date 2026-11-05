@@ -313,7 +313,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('声で操作を選ぶ'));
       await tester.pumpAndSettle();
-      expect(lab.modelId, 'omni');
+      expect(lab.modelId, 'omni2b');
       await tester.scrollUntilVisible(find.text('マイクで録音'), 100);
       expect(
         find.ancestor(
@@ -574,14 +574,15 @@ void main() {
     'model deletion asks for confirmation and cancellation preserves the model',
     (tester) async {
       final lab = PreviewController()
-        ..storedBytes[modelSpecs.first.base.filename] = 1674456352;
+        ..storedBytes[modelSpecs.first.base.filename] =
+            modelSpecs.first.base.bytes;
       await tester.pumpWidget(D1Lab(controller: lab, initialTab: 3));
-      final button = find.byKey(const ValueKey('delete-model-3b'));
+      final button = find.byKey(const ValueKey('delete-model-2b'));
       await tester.scrollUntilVisible(button, 250);
       await tester.pumpAndSettle();
       await tester.tap(button);
       await tester.pumpAndSettle();
-      expect(find.text('d1-3Bを削除しますか？'), findsOneWidget);
+      expect(find.text('d1-2Bを削除しますか？'), findsOneWidget);
       await tester.tap(find.text('キャンセル'));
       await tester.pumpAndSettle();
       expect(lab.deletedModel, isNull);
@@ -590,7 +591,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('削除'));
       await tester.pumpAndSettle();
-      expect(lab.deletedModel, '3b');
+      expect(lab.deletedModel, '2b');
       expect(lab.needsDownload, true);
       await tester.pumpWidget(const SizedBox());
       lab.dispose();
@@ -613,5 +614,68 @@ void main() {
     expect(find.text('INPUT SPEED'), findsOneWidget);
     expect(find.text('入力の処理速度'), findsOneWidget);
     expect(find.text('PREFILL'), findsNothing);
+  });
+
+  testWidgets('LFM3 scores show the median and correct model name', (
+    tester,
+  ) async {
+    final measured = run()
+      ..['model'] = 'd1-2B'
+      ..['throughputKind'] = 'decision';
+    measured['results'] = [
+      {
+        'type': 'score',
+        'instructions': '満足度を評価してください。',
+        'score': 2,
+        'scoreMethod': 'median',
+        'tokens': 120,
+        'inferenceMs': 75,
+        'inputTokPerSec': 1600,
+        'probabilities': [
+          {'label': '不満', 'probability': .01},
+          {'label': '普通', 'probability': .09},
+          {'label': '満足', 'probability': .90},
+        ],
+      },
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: labTheme(),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: RunResults(run: measured, onJson: () {}),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('d1-2B'), findsOneWidget);
+    expect(find.text('INPUT SPEED'), findsOneWidget);
+    expect(find.text('PREFILL'), findsNothing);
+    expect(find.text('評価段階の中央値 / 2'), findsOneWidget);
+    expect(find.text('2.00'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('comparison offers four models and only two for audio', (
+    tester,
+  ) async {
+    final lab = PreviewController();
+    await tester.pumpWidget(D1Lab(controller: lab, initialTab: 1));
+    final first = find.byKey(const ValueKey('comparison-model-0'));
+    expect(
+      tester.widget<DropdownButtonFormField<String>>(first).initialValue,
+      '2b',
+    );
+    await tester.tap(first);
+    await tester.pumpAndSettle();
+    expect(find.text('d1-3B · Q4_K_M'), findsOneWidget);
+    await tester.tap(find.text('d1-3B · Q4_K_M'));
+    await tester.pumpAndSettle();
+    expect(lab.comparisonModels.first.id, '3b');
+    lab.loadTask(builtinTasks.firstWhere((t) => t.id == 'audio-command-jp'));
+    await tester.pumpAndSettle();
+    expect(lab.comparisonModels.map((m) => m.id), ['omni2b', 'omni']);
+    await tester.pumpWidget(const SizedBox());
+    lab.dispose();
   });
 }

@@ -18,14 +18,16 @@ iPhoneはiOS 16以上、Macで試す場合はmacOS 14以上が必要です。iOS
 
 リポジトリのルートから、次のどちらかを実行します。
 
+ソースと同じ版のリリースを使用してください。対応するビルド済み版がまだない場合は「ソースから作る」の手順を使います。
+
 ### ビルド済み版を使う（推奨）
 
-リリースに添付された `DecisionRuntime-0.2.0-apple-arm64.zip` と `SHA256SUMS` をリポジトリのルートへダウンロードします。その後、次を実行します。
+リリースに添付された `DecisionRuntime-0.3.0-apple-arm64.zip` と `SHA256SUMS` をリポジトリのルートへダウンロードします。その後、次を実行します。
 
 ```sh
-runtime_sha=$(awk '$2 == "DecisionRuntime-0.2.0-apple-arm64.zip" {print $1}' SHA256SUMS)
+runtime_sha=$(awk '$2 == "DecisionRuntime-0.3.0-apple-arm64.zip" {print $1}' SHA256SUMS)
 python3 native/decision_bridge/scripts/prepare_runtime.py \
-  --archive DecisionRuntime-0.2.0-apple-arm64.zip --sha256 "$runtime_sha"
+  --archive DecisionRuntime-0.3.0-apple-arm64.zip --sha256 "$runtime_sha"
 ```
 
 アーカイブのチェックサム、ソースとの対応、ライブラリとライセンスの内容を確認して配置します。検証に失敗した場合は既存のランタイムを置き換えません。ソースの版と一致するリリースを使用してください。

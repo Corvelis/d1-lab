@@ -58,12 +58,14 @@ class LabController extends ChangeNotifier {
   bool initialized = false, busy = false, calibrated = true;
   bool deleting = false;
   bool _cancelled = false;
-  String modelId = '3b', backend = 'metal', phase = '', error = '';
+  String modelId = '2b', backend = 'metal', phase = '', error = '';
+  List<String> comparisonModelIds = ['2b', 'omni2b'];
   String language;
   String get languageCode =>
       resolveLanguage(language, PlatformDispatcher.instance.locales);
   AppStrings get strings => AppStrings(languageCode);
   int contextTokens = 2048;
+  String performanceMode = 'optimized';
   int imageMaxPixels = 2048;
   double? progress;
   String state = '届いた商品が壊れていました。交換してもらえますか？';
@@ -76,6 +78,32 @@ class LabController extends ChangeNotifier {
   Map<String, bool> available = {};
   Map<String, int> storedBytes = {};
   ModelSpec get selectedModel => modelSpecs.firstWhere((m) => m.id == modelId);
+  List<ModelSpec> get comparableModels => modelSpecs
+      .where((m) => automaticTaskKind != 'audio' || m.supportsAudio)
+      .toList();
+  List<ModelSpec> get comparisonModels {
+    final available = comparableModels;
+    final selected = comparisonModelIds
+        .where((id) => available.any((m) => m.id == id))
+        .toSet()
+        .map((id) => available.firstWhere((m) => m.id == id))
+        .toList();
+    for (final model in available) {
+      if (selected.length == 2) break;
+      if (!selected.contains(model)) selected.add(model);
+    }
+    return selected;
+  }
+
+  Future<void> selectComparisonModel(int index, String id) {
+    final ids = comparisonModels.map((m) => m.id).toList();
+    final previous = ids[index];
+    ids[index] = id;
+    if (ids[1 - index] == id) ids[1 - index] = previous;
+    comparisonModelIds = ids;
+    return settingsChanged();
+  }
+
   bool get needsProjector => inputKind != 'text' || mediaPath != null;
   bool get modelReady {
     final options = _loadedOptions;
@@ -90,6 +118,7 @@ class LabController extends ChangeNotifier {
     return path?.endsWith('/${selectedModel.base.filename}') == true &&
         options['backend'] == backend &&
         options['contextTokens'] == contextTokens &&
+        options['performanceMode'] == effectivePerformanceMode &&
         (needsProjector
             ? projector?.endsWith('/${selectedModel.projector.filename}') ==
                   true
@@ -139,9 +168,21 @@ class LabController extends ChangeNotifier {
       await readTasks();
       if (await settings.exists()) {
         final j = jsonDecode(await settings.readAsString());
-        modelId = j['modelId'] == '3b' ? '3b' : 'omni';
+        modelId = modelSpecs.any((m) => m.id == j['modelId'])
+            ? j['modelId'] as String
+            : '2b';
+        final comparisons = j['comparisonModelIds'];
+        if (comparisons is List &&
+            comparisons.length == 2 &&
+            comparisons.toSet().length == 2 &&
+            comparisons.every((id) => modelSpecs.any((m) => m.id == id))) {
+          comparisonModelIds = List<String>.from(comparisons);
+        }
         backend = j['backend'] == 'cpu' ? 'cpu' : 'metal';
         calibrated = j['calibrated'] != false;
+        performanceMode = j['performanceMode'] == 'standard'
+            ? 'standard'
+            : 'optimized';
         keepModelLoaded = j['keepModelLoaded'] != false;
         imageMaxPixels = imageSizeOptions.contains(j['imageMaxPixels'])
             ? j['imageMaxPixels']
@@ -180,8 +221,9 @@ class LabController extends ChangeNotifier {
     taskCheck = task.check;
     taskModified = false;
     inputKind = task.inputKind;
-    if (inputKind == 'audio') modelId = 'omni';
-    if (inputKind == 'image') modelId = '3b';
+    if (inputKind == 'audio' && !selectedModel.supportsAudio) {
+      modelId = 'omni2b';
+    }
     mediaPath = null;
     imageSourcePath = null;
     mediaHash = null;
@@ -233,7 +275,9 @@ class LabController extends ChangeNotifier {
     taskCheck = '';
     if (inputKind != task.inputKind) latest = null;
     inputKind = task.inputKind;
-    if (inputKind == 'audio') modelId = 'omni';
+    if (inputKind == 'audio' && !selectedModel.supportsAudio) {
+      modelId = 'omni2b';
+    }
     if (mediaPath != null && mediaType != inputKind) {
       mediaPath = null;
       imageSourcePath = null;
@@ -477,7 +521,7 @@ class LabController extends ChangeNotifier {
       mediaType = type;
       mediaHash = hash;
       mediaInfo = info;
-      if (type == 'audio') modelId = 'omni';
+      if (type == 'audio' && !selectedModel.supportsAudio) modelId = 'omni2b';
       error = '';
       latest = null;
       pending.clear();
@@ -565,16 +609,20 @@ class LabController extends ChangeNotifier {
     if (!keepModelLoaded ||
         (_loadedOptions != null &&
             (_loadedOptions!['backend'] != backend ||
-                _loadedOptions!['contextTokens'] != contextTokens))) {
+                _loadedOptions!['contextTokens'] != contextTokens ||
+                _loadedOptions!['performanceMode'] !=
+                    effectivePerformanceMode))) {
       unawaited(releaseRuntime());
     }
     notifyListeners();
     if (!initialized) return Future<void>.value();
     final encoded = jsonEncode({
       'modelId': modelId,
+      'comparisonModelIds': comparisonModelIds,
       'backend': backend,
       'calibrated': calibrated,
       'contextTokens': contextTokens,
+      'performanceMode': performanceMode,
       'language': language,
       'keepModelLoaded': keepModelLoaded,
       'imageMaxPixels': imageMaxPixels,
@@ -590,6 +638,9 @@ class LabController extends ChangeNotifier {
     });
     return write;
   }
+
+  String get effectivePerformanceMode =>
+      modelId == '3b' && backend == 'metal' ? performanceMode : 'standard';
 
   void _update(double? p, String label) {
     progress = p;
@@ -757,6 +808,9 @@ class LabController extends ChangeNotifier {
       'path': store.file(spec.base).path,
       'backend': usedBackend,
       'contextTokens': usedContext,
+      'performanceMode': spec.id == '3b' && usedBackend == 'metal'
+          ? performanceMode
+          : 'standard',
       if (projector) 'projectorPath': store.file(spec.projector).path,
     };
     final key = jsonEncode([
@@ -894,12 +948,12 @@ class LabController extends ChangeNotifier {
       return;
     }
     final selected = compare
-        ? modelSpecs
+        ? comparisonModels
         : modelSpecs.where((m) => m.id == modelId).toList();
     if (mediaPath != null &&
         mediaType == 'audio' &&
-        (compare || modelId != 'omni')) {
-      error = '音声はomniで実行してください。3Bとの比較には対応していません';
+        selected.any((m) => !m.supportsAudio)) {
+      error = '音声に対応したモデルを選択してください';
       notifyListeners();
       return;
     }

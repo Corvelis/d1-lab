@@ -132,6 +132,36 @@ void main() {
       }
     },
   );
+
+  test(
+    '3B performance preference persists and invalid values use the default',
+    () async {
+      final temp = await Directory.systemTemp.createTemp(
+        'd1-performance-settings-',
+      );
+      final lab = LabController(supportDirectory: temp);
+      try {
+        await lab.init();
+        lab.performanceMode = 'standard';
+        await lab.settingsChanged();
+        final restored = LabController(supportDirectory: temp);
+        await restored.init();
+        expect(restored.performanceMode, 'standard');
+        restored.dispose();
+        final file = File('${lab.directory.path}/settings.json');
+        final settings = jsonDecode(await file.readAsString());
+        settings['performanceMode'] = 'unsupported';
+        await file.writeAsString(jsonEncode(settings));
+        final fallback = LabController(supportDirectory: temp);
+        await fallback.init();
+        expect(fallback.performanceMode, 'optimized');
+        fallback.dispose();
+      } finally {
+        lab.dispose();
+        await temp.delete(recursive: true);
+      }
+    },
+  );
   testWidgets(
     'switching languages preserves drafts and offers English samples',
     (tester) async {

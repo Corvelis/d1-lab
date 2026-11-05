@@ -29,7 +29,7 @@ class ComparisonOverview extends StatelessWidget {
                       Padding(
                         padding: EdgeInsets.only(bottom: 10),
                         child: Text(
-                          r['model'] == 'd1-3B' ? 'd1-3B' : 'omni 600M',
+                          r['model']?.toString() ?? '',
                           textAlign: TextAlign.right,
                           style: TextStyle(
                             fontSize: 12,
@@ -94,7 +94,14 @@ class RunResults extends StatelessWidget {
   final VoidCallback onJson;
   @override
   Widget build(BuildContext context) {
-    final omni = run['model'] == 'd1-omni-600M';
+    final omni =
+        run['throughputKind'] == 'decision' ||
+        run['throughputKind'] == 'encoder-head' ||
+        run['model'] == 'd1-omni-600M' ||
+        run['model'] == 'd1-2B' ||
+        run['model'] == 'd1-Omni-2B';
+    final supportsAudio =
+        run['model']?.toString().toLowerCase().contains('omni') == true;
     final total = durationMetric(metric(run, 'endToEndMs'));
     final inference = durationMetric(metric(run, 'totalMs'));
     final placement = run['placement'] as Map? ?? {};
@@ -117,7 +124,9 @@ class RunResults extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        omni ? Icons.graphic_eq : Icons.view_in_ar_outlined,
+                        supportsAudio
+                            ? Icons.graphic_eq
+                            : Icons.view_in_ar_outlined,
                         color: teal,
                         size: 22,
                       ),
@@ -547,7 +556,9 @@ class _QuestionResult extends StatelessWidget {
     final answer = type == 'noul'
         ? '${((result['yesProbability'] as num) * 100).toStringAsFixed(1)}%'
         : type == 'score'
-        ? (result['score'] as num).toStringAsFixed(2)
+        ? (result['score'] as num).toStringAsFixed(
+            result['scoreMethod'] == 'median' ? 0 : 2,
+          )
         : '${result['selected']}';
     return Card(
       child: Padding(
@@ -586,9 +597,12 @@ class _QuestionResult extends StatelessWidget {
               type == 'noul'
                   ? context.strings.text("「はい」の確率")
                   : type == 'score'
-                  ? context.strings.text("評価段階の期待値 / {p0}", {
-                      'p0': probs.length - 1,
-                    })
+                  ? context.strings.text(
+                      result['scoreMethod'] == 'median'
+                          ? '評価段階の中央値 / {p0}'
+                          : "評価段階の期待値 / {p0}",
+                      {'p0': probs.length - 1},
+                    )
                   : context.strings.text("選ばれた候補"),
               style: TextStyle(fontSize: 10, color: muted),
             ),

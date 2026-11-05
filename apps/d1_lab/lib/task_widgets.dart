@@ -124,7 +124,7 @@ class UsageGuide extends StatelessWidget {
           _GuideSection(
             title: context.strings.text('結果の見方'),
             text: context.strings.text(
-              '候補を選ぶ：各候補の確率\nはい・いいえ：「はい」の確率\n段階で評価：各段階を0・1・2…とした平均評価\n\nTotal：実行から結果が返るまでの時間\nDecision：判定にかかった時間\nPrefill / Input speed：入力の処理速度（tok/s）\n\n確率は正解率ではありません。自分の例で結果を確かめてください。',
+              '候補を選ぶ：各候補の確率\nはい・いいえ：「はい」の確率\n段階で評価：各段階を0・1・2…で表示（LFM3は中央値）\n\nTotal：実行から結果が返るまでの時間\nDecision：判定にかかった時間\nPrefill / Input speed：入力の処理速度（tok/s）\n\n確率は正解率ではありません。自分の例で結果を確かめてください。',
             ),
           ),
           SizedBox(height: 16),
